@@ -1,0 +1,995 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ram Sale Online Catalog</title>
+<meta name="description" content="Searchable, filterable online ram sale catalog that reads the sale-order spreadsheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --ground:#EDEFEA; --surface:#FFFFFF; --surface-2:#F6F7F4; --ink:#1B231F; --muted:#5A655E; --line:#D3D9D1;
+  --accent:#2C4C68; --accent-soft:#DCE5EE; --accent-ink:#FFFFFF;
+  --tag:#F2C230; --tag-soft:#FDF3CF; --tag-ink:#3A2D00;
+  --out:#8B918C; --good:#2B7A4B; --good-soft:#DDF0E3; --hl:#FFF6D6;
+  --t5:#FF87F6; --t5-ink:#1A1A1A; --t10:#61CBF3; --t10-ink:#1A1A1A; --t20:#83E28E; --t20-ink:#1A1A1A;
+  --shadow:0 1px 2px rgba(20,30,25,.06),0 4px 14px rgba(20,30,25,.06);
+  --display:"Zilla Slab",Rockwell,"Roboto Slab",Georgia,serif;
+  --body:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#121614; --surface:#1A201D; --surface-2:#202723; --ink:#E4E9E3; --muted:#9BA69E; --line:#2E3632;
+  --accent:#8EB2D4; --accent-soft:#223445; --accent-ink:#0E1822;
+  --tag:#E6B726; --tag-soft:#3A3113; --tag-ink:#231A00;
+  --out:#6E746F; --good:#6EC08E; --good-soft:#18301F; --hl:#2D2A18;
+  --t5:#FF87F6; --t5-ink:#1A1A1A; --t10:#61CBF3; --t10-ink:#1A1A1A; --t20:#83E28E; --t20-ink:#1A1A1A;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+}}
+:root[data-theme="dark"]{
+  --ground:#121614; --surface:#1A201D; --surface-2:#202723; --ink:#E4E9E3; --muted:#9BA69E; --line:#2E3632;
+  --accent:#8EB2D4; --accent-soft:#223445; --accent-ink:#0E1822;
+  --tag:#E6B726; --tag-soft:#3A3113; --tag-ink:#231A00;
+  --out:#6E746F; --good:#6EC08E; --good-soft:#18301F; --hl:#2D2A18;
+  --t5:#FF87F6; --t5-ink:#1A1A1A; --t10:#61CBF3; --t10-ink:#1A1A1A; --t20:#83E28E; --t20-ink:#1A1A1A;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+[hidden]{display:none!important}
+@media (max-width:600px){.bar{position:static}}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;margin:0}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1360px;margin:0 auto;padding-inline:16px}
+
+/* header */
+.masthead{padding-block:22px 14px}
+.eyebrow{font:600 12px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4.4vw,42px);line-height:1.05;margin:6px 0 6px;text-wrap:balance}
+.sub{color:var(--muted);margin:0;max-width:70ch}
+.sub b{color:var(--ink);font-weight:600}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--ground);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;gap:10px;align-items:center;padding-block:10px;flex-wrap:wrap}
+.search{flex:1 1 260px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:0 10px;min-width:0}
+.search input{border:0;background:transparent;padding:9px 0;flex:1;min-width:0;outline:none}
+.search svg{flex:none;color:var(--muted)}
+.ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,.btn{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer}
+.btn{display:inline-flex;align-items:center;gap:6px;font-weight:500}
+.btn:hover,select:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:8px 12px;cursor:pointer;font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.filters-toggle{display:none}
+
+/* changes banner */
+.changes{margin-block:12px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--tag-soft);border:1px solid var(--tag);border-radius:10px;padding:10px 14px}
+.changes strong{font-family:var(--display);font-size:18px}
+.changes .list{display:flex;gap:6px;flex-wrap:wrap}
+.changes a{color:inherit;font-family:var(--mono);font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:2px 7px;text-decoration:none}
+.changes a:hover{border-color:var(--accent)}
+.preview-note{margin-block:12px 0;background:var(--accent-soft);border-radius:10px;padding:10px 14px}
+
+/* layout */
+.layout{display:grid;grid-template-columns:290px minmax(0,1fr);gap:22px;padding-block:16px 48px;align-items:start}
+aside{position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px);max-height:calc(100vh - 90px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 16px 16px}
+aside h2{font:700 12px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+aside .grp-note{font-size:12px;color:var(--muted);margin:-2px 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:4px 10px;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip .n{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip[aria-pressed="true"] .n{color:inherit;opacity:.8}
+.chip.sub[aria-pressed="true"]{background:var(--tag);color:var(--tag-ink);border-color:var(--tag)}
+.checks{display:flex;flex-direction:column;gap:2px}
+.checks label{display:flex;gap:8px;align-items:center;font-size:14px;padding:3px 0;cursor:pointer}
+.checks label .n{margin-left:auto;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.checks input{accent-color:var(--accent)}
+.range{display:grid;grid-template-columns:1fr 64px 64px;gap:6px;align-items:center;padding:3px 0}
+.range label{font-size:13px;cursor:help}
+.range label small{color:var(--muted)}
+.range input{width:100%;border:1px solid var(--line);background:var(--surface-2);border-radius:6px;padding:4px 6px;font-size:13px;font-family:var(--mono)}
+.range input.set{border-color:var(--accent);background:var(--accent-soft)}
+.side-actions{display:flex;justify-content:space-between;gap:8px;margin-top:16px}
+.linkbtn{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;font-weight:600;text-decoration:underline;text-underline-offset:2px}
+
+/* results */
+.results-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.count{font-family:var(--display);font-size:22px}
+.count small{font-family:var(--body);font-size:14px;color:var(--muted);margin-left:6px}
+.active{display:flex;gap:6px;flex-wrap:wrap}
+.active button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
+.active button::after{content:" ×";color:var(--muted)}
+.section-h{font-family:var(--display);font-size:22px;margin:22px 0 10px;display:flex;align-items:baseline;gap:10px}
+.section-h:first-child{margin-top:0}
+.section-h small{font-family:var(--body);font-size:13px;color:var(--muted);font-weight:400}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow);scroll-margin-top:90px}
+.card.is-sub{border-color:var(--tag);box-shadow:0 0 0 1px var(--tag),var(--shadow)}
+.card.is-out{opacity:.55;box-shadow:none}
+.card.is-out .who,.card.is-out .traits{text-decoration:line-through;text-decoration-color:var(--out)}
+.card:target{box-shadow:0 0 0 3px var(--accent)}
+.top{display:flex;gap:12px;align-items:flex-start}
+.lottag{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:76px;padding:5px 10px 7px;border:2px solid var(--ink);border-radius:4px;background:var(--surface);color:var(--ink);text-align:center;line-height:1}
+.lottag small{font:700 10px/1 var(--body);letter-spacing:.14em;color:var(--muted);margin-bottom:3px}
+.lottag span{font-family:var(--display);font-weight:700;font-size:32px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.nsip{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.nsip:hover{text-decoration-thickness:2px}
+.who{flex:1;min-width:0}
+.who .breed{font-family:var(--display);font-size:19px;line-height:1.15}
+.who .cons{color:var(--muted);font-size:14px}
+.star{flex:none;background:none;border:1px solid transparent;border-radius:8px;cursor:pointer;color:var(--muted);padding:4px;line-height:0}
+.star:hover{border-color:var(--line)}
+.star[aria-pressed="true"]{color:#D39B00}
+.star[aria-pressed="true"] svg{fill:currentColor}
+.facts{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
+.facts b{color:var(--ink);font-weight:600;font-family:var(--mono);font-size:12.5px}
+.pair{font-size:12.5px;color:var(--muted)}
+.pair a{color:var(--accent)}
+.traits{display:flex;flex-wrap:wrap;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tr{flex:1 1 66px;background:var(--surface-2);padding:5px 6px 6px;min-width:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);margin-right:-1px;margin-bottom:-1px}
+.tr .k{font-size:10.5px;font-weight:600;letter-spacing:.04em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr .v{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
+.tr.hl{box-shadow:inset 0 0 0 2px var(--accent)}
+.tr.hl .k{color:var(--ink)}
+.tr.t5{background:var(--t5);color:var(--t5-ink)} .tr.t10{background:var(--t10);color:var(--t10-ink)} .tr.t20{background:var(--t20);color:var(--t20-ink)}
+.tr.t5 .k,.tr.t10 .k,.tr.t20 .k{color:inherit;opacity:.85}
+.tr .pc{font:700 9.5px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.legend{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.sw{display:inline-block;font:700 10.5px/1 var(--body);letter-spacing:.04em;padding:4px 7px;border-radius:4px}
+.sw.t5{background:var(--t5);color:var(--t5-ink)} .sw.t10{background:var(--t10);color:var(--t10-ink)} .sw.t20{background:var(--t20);color:var(--t20-ink)}
+.chip.t5[aria-pressed="true"]{background:var(--t5);color:var(--t5-ink);border-color:var(--t5)}
+.chip.t10[aria-pressed="true"]{background:var(--t10);color:var(--t10-ink);border-color:var(--t10)}
+.chip.t20[aria-pressed="true"]{background:var(--t20);color:var(--t20-ink);border-color:var(--t20)}
+.comments{font-size:13.5px;margin:0}
+.status{display:flex;gap:10px;align-items:flex-start;border-radius:8px;padding:8px 10px;font-size:13.5px}
+.status.sub{background:var(--tag-soft)}
+.status.out{background:var(--surface-2);color:var(--muted)}
+.status.sold{background:var(--good-soft)}
+.eartag{flex:none;background:var(--tag);color:var(--tag-ink);font:700 10.5px/1 var(--body);letter-spacing:.1em;padding:6px 9px 5px;border-radius:5px 5px 10px 10px;position:relative}
+.status.out .eartag{background:var(--out);color:var(--surface)}
+.status.sold .eartag{background:var(--good);color:var(--surface)}
+
+/* table */
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:var(--surface-2);font-size:11.5px;letter-spacing:.03em;cursor:pointer;user-select:none}
+th[aria-sort]{color:var(--accent)}
+th[aria-sort="descending"]::after{content:" ▼"}
+th[aria-sort="ascending"]::after{content:" ▲"}
+td.num{font-family:var(--mono);text-align:right}
+td.lot{font-family:var(--mono);font-weight:600}
+td.cmt{white-space:normal;min-width:220px;color:var(--muted)}
+tr.is-sub td{background:var(--tag-soft)}
+tr.is-out td{color:var(--out);text-decoration:line-through}
+td.hl{box-shadow:inset 0 0 0 2px var(--accent)}
+td.t5{background:var(--t5);color:var(--t5-ink)} td.t10{background:var(--t10);color:var(--t10-ink)} td.t20{background:var(--t20);color:var(--t20-ink)}
+.pill{display:inline-block;font:700 10px/1 var(--body);letter-spacing:.08em;padding:3px 6px;border-radius:4px;margin-left:6px;vertical-align:1px;background:var(--tag);color:var(--tag-ink);text-decoration:none}
+.pill.out{background:var(--out);color:var(--surface)}
+.pill.sold{background:var(--good);color:var(--surface)}
+
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:32px;text-align:center;color:var(--muted)}
+.loading{padding:60px 0;text-align:center;color:var(--muted)}
+footer{border-top:1px solid var(--line);padding-block:20px 40px;color:var(--muted);font-size:13px}
+footer .wrap{display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
+footer label.btn{font-size:13px}
+
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);max-width:min(720px,calc(100vw - 32px));padding:0}
+dialog::backdrop{background:rgba(10,15,12,.45)}
+.dlg-h{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dlg-h h3{font-family:var(--display);font-size:22px;margin:0}
+.dlg-b{padding:6px 18px 18px;max-height:70vh;overflow:auto}
+.dlg-b dt{font-weight:700;margin-top:12px}
+.dlg-b dd{margin:2px 0 0;color:var(--muted);max-width:65ch}
+.dlg-b .note{background:var(--surface-2);border-radius:8px;padding:10px 12px;margin-top:12px;font-size:14px}
+
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .filters-toggle{display:inline-flex}
+  aside{display:none;position:static;max-height:none}
+  aside.open{display:block}
+}
+@media (max-width:520px){
+  .cards{grid-template-columns:1fr}
+  .seg button{padding:8px 9px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+/* prices */
+.price{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;border-top:1px dashed var(--line);padding-top:10px;font-size:13px;color:var(--muted)}
+.money{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:6px;background:var(--surface-2);padding-left:7px}
+.money:focus-within{border-color:var(--accent)}
+.money span{color:var(--muted);font-family:var(--mono);margin-right:3px}
+td.lot a{color:var(--accent)}
+.pin{width:78px;border:0;background:transparent;padding:5px 6px 5px 2px;font-family:var(--mono);font-size:14px;outline:none}
+.bin{width:120px;flex:1 1 100px;min-width:0;border:1px solid var(--line);border-radius:6px;background:var(--surface-2);padding:5px 7px;font-size:13px}
+.bin:focus{border-color:var(--accent);outline:none}
+.lt{font-family:var(--mono);color:var(--ink);font-weight:600}
+.price.sold .money{border-color:var(--good);background:var(--good-soft)}
+td .money{padding-left:5px} td .pin{width:70px;font-size:13px} td .bin{width:110px;flex:none}
+.btn#wakeBtn[aria-pressed="true"]{background:var(--good-soft);border-color:var(--good);color:var(--ink)}
+.tally{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;font-variant-numeric:tabular-nums}
+.tally b{font-family:var(--mono);font-size:15px}
+.tally:hover{border-color:var(--accent)}
+.layout.results-mode{grid-template-columns:minmax(0,1fr)}
+.layout.results-mode aside{display:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.stat .l{font:700 11px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.stat .n{font-family:var(--display);font-size:30px;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
+.stat .s{font-size:12.5px;color:var(--muted)}
+.stat.hero{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.stat.hero .l,.stat.hero .s{color:inherit;opacity:.8}
+.sumgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,600px),1fr));gap:16px;margin-bottom:18px}
+.sumgrid h3,.res-h{font-family:var(--display);font-size:20px;margin:0 0 8px}
+.res-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.res-note{color:var(--muted);font-size:13px}
+td.r,th.r{text-align:right}
+tr.tot td{font-weight:700;border-top:2px solid var(--line)}
+#copyBox{width:100%;height:160px;font-family:var(--mono);font-size:12px;margin-bottom:12px}
+@media print{
+  .bar,aside,footer,.star,.changes,.active,.res-actions{display:none!important}
+  .layout{display:block}
+  body{background:#fff}
+  .card{break-inside:avoid;box-shadow:none}
+  .cards{grid-template-columns:1fr 1fr}
+}
+</style>
+
+<header class="wrap masthead">
+  <div class="eyebrow">2026 Ram Sale &middot; Online catalog</div>
+  <h1>Find your next herd sire</h1>
+  <p class="sub" id="subline">Loading the sale order&hellip;</p>
+  <div id="changes" class="changes" hidden></div>
+  <div id="previewNote" class="preview-note" hidden></div>
+</header>
+
+<div class="bar">
+  <div class="wrap">
+    <label class="search" for="q">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search lot, tag, consignor, comments…" autocomplete="off">
+    </label>
+    <div class="ctl">
+      <button class="btn filters-toggle" id="filtersToggle" aria-expanded="false">Filters <span id="fCount"></span></button>
+      <select id="sortKey" aria-label="Sort by"></select>
+      <button class="btn" id="sortDir" aria-label="Sort direction" title="Sort direction">↓ High first</button>
+      <div class="seg" role="group" aria-label="View">
+        <button id="vCards" aria-pressed="true">Cards</button>
+        <button id="vTable" aria-pressed="false">Table</button>
+        <button id="vResults" aria-pressed="false">Results</button>
+      </div>
+      <button class="btn" id="glossBtn">Trait guide</button>
+      <button class="btn" id="wakeBtn" hidden aria-pressed="false" title="Stop this phone or tablet from dimming or locking while the catalog is open">Keep screen on</button>
+      <button class="tally" id="tally" hidden title="Open sale results"></button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap layout">
+  <aside id="side" aria-label="Filters">
+    <h2>Show</h2>
+    <div class="chips" id="statusChips"></div>
+    <div id="tierBox" hidden>
+      <h2>Breed rank</h2>
+      <p class="grp-note">Rams in the top tier of their breed for at least one EBV.</p>
+      <div class="chips" id="tierChips"></div>
+    </div>
+    <h2>Breed</h2>
+    <div class="chips" id="breedChips"></div>
+    <h2>Consignor</h2>
+    <div class="checks" id="consChecks"></div>
+    <h2>Scrapie genotype</h2>
+    <div class="chips" id="codonChips"></div>
+    <h2>Birth type</h2>
+    <div class="chips" id="birthChips"></div>
+    <div id="traitFilters"></div>
+    <div class="side-actions">
+      <button class="linkbtn" id="clearAll">Clear all filters</button>
+    </div>
+  </aside>
+  <main>
+    <div class="results-head">
+      <div class="count" id="count"></div>
+      <div class="active" id="activeFilters"></div>
+    </div>
+    <div class="legend" id="legend" hidden style="margin:-4px 0 12px"></div>
+    <div id="results"><div class="loading">Reading the sale order spreadsheet…</div></div>
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div id="source">Catalog data is read from the sale order spreadsheet each time this page loads.</div>
+    <div class="ctl">
+      <button class="btn" onclick="window.print()">Print this list</button>
+      <label class="btn" for="previewFile" title="Sale office: check a new spreadsheet before uploading it. Only you see the preview.">Preview a spreadsheet…</label>
+      <input type="file" id="previewFile" accept=".xlsx,.xls,.xlsm" hidden>
+    </div>
+  </div>
+</footer>
+
+<dialog id="gloss">
+  <div class="dlg-h"><h3>Reading the numbers</h3><button class="btn" id="glossClose">Close</button></div>
+  <div class="dlg-b" id="glossBody"></div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* ============ configuration ============ */
+const DATA_FILE = 'catalog.xlsx';      // the spreadsheet this page reads; replace it to update the catalog
+const EMBEDDED = window.EMBEDDED_XLSX || null; // optional base64 fallback
+const PCT_FILE = 'percentiles.xlsx';   // optional breed percentile tables (top 5/10/20% cutoffs)
+
+// Known columns, matched by header text (case/spacing-insensitive). Unknown numeric columns still show up.
+const BASE = {
+  'lot #':'lot','lot':'lot','consignor':'consignor','breed':'breed','head':'head','flock tag':'tag','tag':'tag',
+  'nsip id':'nsip','scrapie tag':'scrapieTag','birth type':'birth','scrapie genotype':'codon','codon':'codon',
+  'comments':'comments','status':'status','replaces tag':'replaces','status note':'note','price':'price','buyer':'buyer'
+};
+const TRAITS = [
+  // measured
+  {h:['fd micron','micron'], key:'fd', label:'Micron', long:'Fiber diameter (micron)', group:'Measured', dir:'low', dp:1,
+   desc:'Measured average fiber diameter of the ram\'s fleece, in microns. Lower is finer.'},
+  {h:['adj ribeye'], key:'rib', label:'Ribeye', long:'Adjusted ribeye area (in²)', group:'Measured', dir:'high', dp:2,
+   desc:'Ultrasound ribeye (loin eye) area adjusted to a standard weight, square inches.'},
+  {h:['wt/day of age, adg','adg'], key:'adg', label:'ADG', long:'Weight per day of age (lb/day)', group:'Measured', dir:'high', dp:2,
+   desc:'Average daily gain: body weight divided by age in days.'},
+  // ratios
+  {h:['adj ribeye ratio'], key:'ribR', label:'Ribeye R', long:'Ribeye ratio', group:'Ratios', dir:'high', dp:0},
+  {h:['adg ratio'], key:'adgR', label:'ADG R', long:'ADG ratio', group:'Ratios', dir:'high', dp:0},
+  {h:['tob ratio'], key:'tobR', label:'TOB R', long:'Test-on-barn ratio', group:'Ratios', dir:'high', dp:0},
+  {h:['ww ratio'], key:'wwR', label:'WW R', long:'Weaning weight ratio', group:'Ratios', dir:'high', dp:0},
+  {h:['gain ratio'], key:'gainR', label:'Gain R', long:'Gain ratio', group:'Ratios', dir:'high', dp:0},
+  {h:['growth ratio'], key:'growR', label:'Growth R', long:'Growth ratio', group:'Ratios', dir:'high', dp:0},
+  {h:['wool ratio'], key:'woolR', label:'Wool R', long:'Wool ratio', group:'Ratios', dir:'high', dp:0},
+  // blackface EBVs
+  {h:['bwt'], key:'bwt', label:'BWT', long:'Birth weight EBV', group:'Blackface EBVs', dir:null, dp:2,
+   desc:'Direct genetic effect on birth weight. Positive helps early survival in twins/triplets; negative reduces lambing difficulty in singles.'},
+  {h:['wwt'], key:'wwt', label:'WWT', long:'Weaning weight EBV', group:'Blackface EBVs', dir:'high', dp:1,
+   desc:'Preweaning growth potential. A ram at +3.0 kg is expected to sire lambs about 3 lb heavier at weaning.'},
+  {h:['post wwt'], key:'bpwwt', label:'PWWT', long:'Post-weaning weight EBV (blackface)', group:'Blackface EBVs', dir:'high', dp:1,
+   desc:'Genetic merit for weight at about 120 days; favors rapid growth to market age.'},
+  {h:['pfat'], key:'pfat', label:'PFAT', long:'Post-weaning fat EBV', group:'Blackface EBVs', dir:'low', dp:2,
+   desc:'Ultrasound fat depth at the 12th–13th rib. Negative values mean leaner progeny and are generally preferred.'},
+  {h:['pemd'], key:'pemd', label:'PEMD', long:'Post-weaning eye muscle depth EBV', group:'Blackface EBVs', dir:'high', dp:2,
+   desc:'Ultrasound loin muscle depth. Positive values mean larger loin eyes in progeny.'},
+  {h:['carcass plus'], key:'cplus', label:'Carcass+', long:'Carcass Plus index', group:'Blackface EBVs', dir:'high', dp:0,
+   desc:'100 + 2.33×WWT + 3.50×PWWT + 11.40×PEMD − 4.07×PFAT. A terminal-sire value index.'},
+  // whiteface EBVs
+  {h:['nlb%','nlb'], key:'nlb', label:'NLB%', long:'Number of lambs born EBV (%)', group:'Whiteface EBVs', dir:'high', dp:1,
+   desc:'Prolificacy. A ram at 26% should sire daughters that drop 26 more lambs per 100 ewes than average.'},
+  {h:['milk wt','mwwt'], key:'milk', label:'Milk', long:'Maternal weaning weight EBV', group:'Whiteface EBVs', dir:'high', dp:2,
+   desc:'Mothering ability, mainly ewe milk production, expressed in daughters\' lambs.'},
+  {h:['yemd'], key:'yemd', label:'YEMD', long:'Yearling eye muscle depth EBV', group:'Whiteface EBVs', dir:'high', dp:2,
+   desc:'Ultrasound loin muscle depth adjusted to a standard yearling weight.'},
+  {h:['pwwt'], key:'pwwt', label:'PWWT', long:'Post-weaning weight EBV (whiteface)', group:'Whiteface EBVs', dir:'high', dp:2,
+   desc:'Genetic merit for weight at about 120 days.'},
+  {h:['ywt'], key:'ywt', label:'YWT', long:'Yearling weight EBV', group:'Whiteface EBVs', dir:'high', dp:2,
+   desc:'Growth to 12 months. High values also mean heavier mature ewes with higher maintenance needs.'},
+  {h:['yfw'], key:'yfw', label:'YFW', long:'Yearling fleece weight EBV (%)', group:'Whiteface EBVs', dir:'high', dp:1,
+   desc:'Greasy fleece weight as a percent of the mean: +10 means fleeces about 10% heavier than average.'},
+  {h:['yfd'], key:'yfd', label:'YFD', long:'Yearling fiber diameter EBV', group:'Whiteface EBVs', dir:'low', dp:2,
+   desc:'Negative values mean finer fleeces and are favored.'},
+  {h:['ysl'], key:'ysl', label:'YSL', long:'Yearling staple length EBV', group:'Whiteface EBVs', dir:'high', dp:2,
+   desc:'Genetic potential for staple length.'},
+  {h:['index','range index','wri'], key:'index', label:'Index', long:'US Western Range Index', group:'Whiteface EBVs', dir:'high', dp:1,
+   desc:'NSIP index weighting early growth and prolificacy most, with fleece weight, micron and maternal ability.'},
+];
+const ALIASES = { cplus:['carcass plus index','cplus','carcass'], index:['us range index','us western range index','western range index','usrangeindex'],
+  milk:['mwwt','maternal weaning weight'], yfw:['ygfw','gfw','yearling fleece weight'], nlb:['number of lambs born'], yfd:['yearling fiber diameter'],
+  ysl:['yearling staple length'], ywt:['yearling weight'], yemd:['yearling eye muscle depth'], bwt:['birth weight'], wwt:['weaning weight'],
+  pfat:['post weaning fat','fat'], pemd:['post weaning eye muscle depth','emd'], bpwwt:['post weaning weight'], pwwt:['post weaning weight'] };
+const TRAIT_BY_H = {}; TRAITS.forEach(t => t.h.forEach(h => TRAIT_BY_H[h] = t));
+const GROUPS = ['Measured','Ratios','Blackface EBVs','Whiteface EBVs','Other'];
+
+/* ============ helpers ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s ?? '').toLowerCase().replace(/\s+/g,' ').trim();
+const num = v => { if (v === null || v === undefined || v === '') return null; if (typeof v === 'number') return isFinite(v) ? v : null;
+  const n = parseFloat(String(v).replace(/[,%$]/g,'')); return isFinite(n) && /^-?[\d.,%$ ]+$/.test(String(v).trim()) ? n : null; };
+const str = v => { if (v === null || v === undefined) return ''; if (typeof v === 'number') return Number.isInteger(v) ? String(v) : String(v); return String(v).trim(); };
+function titleCase(s){
+  s = str(s); if (!s) return '';
+  return s.split(/(\/|\s+)/).map(w => {
+    if (/^\s+$|^\/$/.test(w)) return w;
+    const lw = w.toLowerCase();
+    if (['de','of','and','du'].includes(lw)) return lw;
+    if (w.length <= 4 && w === w.toUpperCase() && !['HAMP','CROSS'].includes(w)) return w; // SAMM etc.
+    return lw.charAt(0).toUpperCase() + lw.slice(1);
+  }).join('').replace(/^./, c => c.toUpperCase());
+}
+function fmt(v, dp){ if (v === null || v === undefined) return ''; const d = dp ?? (Math.abs(v) >= 100 ? 0 : 2); const s = v.toFixed(d); return s === '-0' || /^-0\.0+$/.test(s) ? s.slice(1) : s; }
+function lotParts(l){ const m = /^(\d+)\s*([A-Za-z]*)/.exec(str(l)); return m ? [parseInt(m[1],10), m[2].toUpperCase()] : [1e9, str(l)]; }
+function statusOf(v, breed){
+  const s = norm(v), b = norm(breed);
+  if (/out of sale|scratch|withdraw/.test(b)) return 'out';
+  if (!s) return '';
+  if (/^sub|substitut/.test(s)) return 'sub';
+  if (/out|scratch|withdraw|pulled/.test(s)) return 'out';
+  if (/sold/.test(s)) return 'sold';
+  return '';
+}
+const NSIP_URL = 'http://nsipsearch.nsip.org/#!/details/';
+function nsipLink(id){ const k = str(id).replace(/[^A-Za-z0-9]/g,'').slice(-16); if (k.length < 16) return esc(id);
+  return `<a class="nsip" href="${NSIP_URL}${encodeURIComponent(k)}" target="_blank" rel="noopener" title="Open this ram's EBV record on NSIP Search">${esc(id)}</a>`; }
+const BIRTH = {1:'Single',2:'Twin',3:'Triplet',4:'Quad'};
+
+/* ============ state ============ */
+let ROWS = [], PRESENT = [], OTHER_TRAITS = {}, LOTS = [], LOT_BY = {};
+let PCT_EXT = {}, PCT_CAT = {}, PCT = {}, PCT_SRC = '';
+const S = { q:'', breeds:new Set(), cons:new Set(), codons:new Set(), births:new Set(), show:'all', tier:null, ranges:{}, sort:'sale', dir:-1, view:'cards' };
+let PICKS = new Set();
+try { PICKS = new Set(JSON.parse(localStorage.getItem('ramsale-picks') || '[]')); } catch(e){}
+try { const v = localStorage.getItem('ramsale-view'); if (['table','cards','results'].includes(v)) S.view = v; } catch(e){}
+let PRICES = {};
+try { PRICES = JSON.parse(localStorage.getItem('ramsale-prices') || '{}') || {}; } catch(e){}
+const savePrices = () => { try { localStorage.setItem('ramsale-prices', JSON.stringify(PRICES)); } catch(e){} };
+const money = (n, dp) => n === null || n === undefined ? '' : '$' + n.toLocaleString(undefined, {minimumFractionDigits: dp ?? 0, maximumFractionDigits: dp ?? 2});
+const savePicks = () => { try { localStorage.setItem('ramsale-picks', JSON.stringify([...PICKS])); } catch(e){} };
+
+/* ============ loading ============ */
+async function loadDefault(){
+  let buf = null, modified = null;
+  try {
+    const r = await fetch(DATA_FILE + '?v=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) throw new Error(r.status);
+    buf = await r.arrayBuffer();
+    const lm = r.headers.get('last-modified'); if (lm) modified = new Date(lm);
+  } catch(e) {
+    if (EMBEDDED) buf = Uint8Array.from(atob(EMBEDDED), c => c.charCodeAt(0)).buffer;
+  }
+  if (!buf) { $('#results').innerHTML = '<div class="empty">The catalog spreadsheet (<b>'+esc(DATA_FILE)+'</b>) could not be loaded. Check that it sits in the same folder as this page.</div>'; $('#subline').textContent=''; return; }
+  ingest(buf, modified, null);
+  loadPct();
+}
+async function loadPct(){
+  try {
+    const r = await fetch(PCT_FILE + '?v=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) throw new Error(r.status);
+    PCT_EXT = parsePct(XLSX.read(await r.arrayBuffer(), {type:'array'}), false); PCT_SRC = PCT_FILE;
+  } catch(e){
+    PCT_EXT = window.EMBEDDED_PCT ? parsePct(XLSX.read(Uint8Array.from(atob(window.EMBEDDED_PCT), c => c.charCodeAt(0)), {type:'array'}), false) : {};
+  }
+  applyPct(); render();
+}
+
+/* ============ breed percentile tables ============ */
+const nk = s => norm(s).replace(/[^a-z0-9+]/g,'');
+function pctNum(x){ if (x === null || x === undefined || x === '') return null; const m = /(\d+(?:\.\d+)?)/.exec(String(x)); if (!m) return null;
+  let n = parseFloat(m[1]); if (n > 0 && n < 1) n *= 100; return n; }   // 0.05 -> 5
+// rank=true: labels are percentile ranks (95 = top 5%); otherwise "Top 5%" style labels
+function tierOf(x, rank){
+  let n = pctNum(x); if (n === null) return null;
+  if (rank || (n > 50 && !/top/i.test(String(x)))) n = 100 - n;
+  n = Math.round(n); return [5,10,20].includes(n) ? n : null;
+}
+function parsePct(wb, onlyNamed){
+  const out = {};
+  const put = (breed, trait, tier, v) => { const b = nk(breed), t = nk(trait), n = num(v); if (!b || !t || !tier || n === null) return;
+    const e = out[b] ||= {breed: titleCase(breed), cuts:{}}; (e.cuts[t] ||= {})[tier] = n; };
+  wb.SheetNames.forEach(name => {
+    if (onlyNamed && !/percentile|rank/i.test(name)) return;
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:null, raw:true, blankrows:false});
+    if (rows.some((r,i) => i < 6 && r && r.some(c => ['lot #','lot'].includes(norm(c))))) return;
+    const sheetBreed = name.replace(/percentiles?|ranks?|tables?|ebvs?|nsip|\b(19|20)\d{2}\b/gi,'').replace(/[-_]+/g,' ').trim();
+    for (let hi = 0; hi < Math.min(rows.length, 10); hi++){
+      const h = (rows[hi] || []).map(norm); if (!h.some(Boolean)) continue;
+      const bi = h.findIndex(x => x === 'breed');
+      const ti = h.findIndex(x => x === 'trait' || x === 'ebv');
+      if (ti >= 0){ // long format: Breed | Trait | Top 5% | Top 10% | Top 20%
+        const tc = h.map((x,i) => i !== ti && i !== bi ? tierOf(x) : null);
+        for (let r = hi+1; r < rows.length; r++){ const row = rows[r]; if (!row) continue;
+          tc.forEach((tier,i) => tier && put(bi >= 0 ? str(row[bi]) || sheetBreed : sheetBreed, str(row[ti]), tier, row[i])); }
+        return;
+      }
+      const pi = h.findIndex(x => /percent|top|rank|tier|level/.test(x));
+      if (pi >= 0){ // wide format: Percentile | BWT | WWT | ...   (one row per tier)
+        const rank = rows.slice(hi+1).some(r => r && !/top/i.test(String(r[pi] ?? '')) && pctNum(r[pi]) > 50);
+        for (let r = hi+1; r < rows.length; r++){ const row = rows[r]; if (!row) continue; const tier = tierOf(row[pi], rank); if (!tier) continue;
+          h.forEach((x,i) => { if (i === pi || i === bi || !x) return; put(bi >= 0 ? str(row[bi]) || sheetBreed : sheetBreed, rows[hi][i], tier, row[i]); }); }
+        return;
+      }
+    }
+  });
+  return out;
+}
+function traitNames(t){ return [...(t.h||[]), t.label, t.long, ...(ALIASES[t.key]||[])].map(nk); }
+function applyPct(){
+  PCT = {...PCT_EXT, ...PCT_CAT};
+  const keys = Object.keys(PCT);
+  const tmap = {}; allTraits().forEach(t => tmap[t.key] = t);
+  ROWS.forEach(r => {
+    r.tiers = {}; r.best = null; r.pctBreed = null;
+    const b = nk(r.breed); if (!b || !keys.length) return;
+    const bk = keys.includes(b) ? b : keys.filter(k => b.includes(k)).sort((x,y) => y.length - x.length)[0];
+    if (!bk) return; r.pctBreed = PCT[bk].breed;
+    for (let [k,v] of Object.entries(r.traits)){
+      const t = tmap[k]; if (!t) continue;
+      const cuts = traitNames(t).map(n => PCT[bk].cuts[n]).find(Boolean); if (!cuts) continue;
+      // NLB is shown as a percent in the catalog (19.3) but NSIP tables store a fraction (0.19)
+      if (k === 'nlb' && Object.values(cuts).every(c => Math.abs(c) < 1) && Math.abs(v) >= 1) v = v / 100;
+      let dir = t.dir || 'high';
+      if (cuts[5] !== undefined && cuts[20] !== undefined && cuts[5] !== cuts[20]) dir = cuts[5] > cuts[20] ? 'high' : 'low';
+      for (const tier of [5,10,20]){ const c = cuts[tier]; if (c === undefined) continue;
+        if (dir === 'high' ? v >= c : v <= c){ r.tiers[k] = tier; r.best = r.best ? Math.min(r.best, tier) : tier; break; } }
+    }
+  });
+}
+const pctBreeds = () => Object.values(PCT).map(e => e.breed);
+function ingest(buf, modified, previewName){
+  if (!window.XLSX){ $('#results').innerHTML = '<div class="empty">The spreadsheet reader did not load. Check your internet connection and reload.</div>'; return; }
+  const wb = XLSX.read(buf, {type:'array', cellDates:true});
+  if (wb.Props && wb.Props.ModifiedDate) modified = new Date(wb.Props.ModifiedDate);
+  ROWS = parseWorkbook(wb);
+  PCT_CAT = parsePct(wb, true); applyPct();
+  const secs = [...new Set(ROWS.map(r => r.section))];
+  const nOut = ROWS.filter(r => r.status === 'out').length;
+  $('#subline').innerHTML = `<b>${ROWS.length - nOut} rams</b> in ${secs.length} sections from ${new Set(ROWS.filter(r=>r.consignor).map(r => r.consignor)).size} consignors. Sort and filter by breed, consignor, genotype and any trait; star rams to build a short list.` +
+    (pctBreeds().length ? ` Colored EBVs mark the top 5% (pink), 10% (blue) and 20% (green) of the breed (${esc(pctBreeds().join(', '))}).` : '') +
+    (modified && !isNaN(modified) ? ` <span style="white-space:nowrap">Data updated ${modified.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}.</span>` : '');
+  const pn = $('#previewNote');
+  if (previewName){ pn.hidden = false; pn.innerHTML = `Previewing <b>${esc(previewName)}</b> from your computer. Only you see this. <button class="linkbtn" id="endPreview">Back to the published catalog</button>`; $('#endPreview').onclick = () => { pn.hidden = true; loadDefault(); }; }
+  buildControls(); render();
+}
+
+function parseWorkbook(wb){
+  const out = []; OTHER_TRAITS = {};
+  wb.SheetNames.forEach(name => {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:null, raw:true, blankrows:false});
+    let hi = rows.findIndex((r,i) => i < 6 && r && r.some(c => ['lot #','lot'].includes(norm(c))));
+    if (hi < 0) return; // not a catalog sheet
+    const hdr = rows[hi].map(norm);
+    const section = name.replace(/\b(19|20)\d{2}\b/g,'').replace(/\s+/g,' ').trim();
+    const face = /black|suffolk|hamp/i.test(section) ? 'blackface' : 'whiteface';
+    const cols = hdr.map((h, i) => {
+      if (!h) return null;
+      if (BASE[h]) return {kind:'base', key:BASE[h]};
+      if (TRAIT_BY_H[h]) return {kind:'trait', t:TRAIT_BY_H[h]};
+      return {kind:'other', label: str(rows[hi][i])};
+    });
+    // "comments"-like extra text columns get appended to comments
+    for (let r = hi+1; r < rows.length; r++){
+      const row = rows[r]; if (!row) continue;
+      const rec = {section, face, traits:{}, extra:[]};
+      cols.forEach((c, i) => {
+        if (!c) return; const v = row[i]; if (v === null || v === '' ) return;
+        if (c.kind === 'base'){ if (c.key === 'comments' && rec.comments) rec.comments += ' · ' + str(v); else rec[c.key] = v; }
+        else if (c.kind === 'trait'){ const n = num(v); if (n !== null) rec.traits[c.t.key] = n; }
+        else {
+          const n = num(v);
+          if (n !== null){ const k = 'x_' + norm(c.label).replace(/[^a-z0-9]+/g,'_'); OTHER_TRAITS[k] = OTHER_TRAITS[k] || {key:k, label:c.label, long:c.label, group:'Other', dir:'high'}; rec.traits[k] = n; }
+          else rec.extra.push(str(v));
+        }
+      });
+      if (!str(rec.lot)) continue;
+      rec.lot = str(rec.lot).toUpperCase();
+      [rec.lotNum, rec.lotSuf] = lotParts(rec.lot);
+      rec.consignor = str(rec.consignor);
+      rec.status = statusOf(rec.status, rec.breed);
+      rec.breed = /out of sale/i.test(str(rec.breed)) ? '' : titleCase(rec.breed);
+      rec.head = str(rec.head);
+      rec.tag = str(rec.tag); rec.nsip = str(rec.nsip); rec.scrapieTag = str(rec.scrapieTag);
+      rec.codon = str(rec.codon).toUpperCase();
+      rec.birth = num(rec.birth);
+      rec.comments = [str(rec.comments), ...rec.extra].filter(Boolean).join(' · ');
+      rec.replaces = str(rec.replaces); rec.note = str(rec.note); rec.buyer = str(rec.buyer);
+      rec.priceN = num(rec.price);
+      rec.id = rec.lot;
+      rec.search = norm([rec.lot, rec.consignor, rec.breed, rec.tag, rec.nsip, rec.scrapieTag, rec.comments, rec.note, rec.replaces, rec.codon].join(' '));
+      out.push(rec);
+    }
+  });
+  // pens: lots like 54A/54B are sold together
+  const byNum = {}; out.forEach(r => (byNum[r.section+'|'+r.lotNum] ||= []).push(r));
+  out.forEach(r => { r.pen = (byNum[r.section+'|'+r.lotNum] || []).filter(x => x !== r && x.lotSuf); if (!r.lotSuf) r.pen = []; });
+  // fill breed/consignor for out-of-sale placeholder rows from pen mates
+  out.forEach(r => { if (!r.breed && r.pen.length) r.breed = r.pen.find(p => p.breed)?.breed || ''; if (!r.breed) r.breed = '—'; });
+  out.sort((a,b) => a.lotNum - b.lotNum || a.lotSuf.localeCompare(b.lotSuf));
+  // price lots: one price per lot number; pens of 2 sell at 2x the per-head price
+  const lots = {};
+  out.forEach(r => { r.pk = r.lotNum < 1e9 ? String(r.lotNum) : r.lot; (lots[r.pk] ||= []).push(r); });
+  out.forEach(r => { const live = lots[r.pk].filter(x => x.status !== 'out'); r.penHead = live.length || 1; });
+  LOTS = Object.entries(lots).map(([pk, rows]) => {
+    const live = rows.filter(x => x.status !== 'out'); if (!live.length) return null;
+    const f = live[0], sufs = live.map(x => x.lotSuf).filter(Boolean);
+    const excel = live.map(x => x.priceN).find(v => v !== null && v !== undefined);
+    return {pk, rows: live, head: live.length, label: sufs.length > 1 ? `${f.lotNum}${sufs[0]}–${sufs[sufs.length-1]}` : f.lot,
+      lotNum: f.lotNum, section: f.section, breed: f.breed, consignor: f.consignor, excelPrice: excel ?? null, excelBuyer: live.map(x => x.buyer).find(Boolean) || ''};
+  }).filter(Boolean).sort((a,b) => a.lotNum - b.lotNum);
+  LOT_BY = Object.fromEntries(LOTS.map(l => [l.pk, l]));
+  return out;
+}
+
+/* ============ prices ============ */
+function priceOf(pk){ const e = PRICES[pk]; if (e && e.p !== undefined && e.p !== null && e.p !== '') return e.p; const l = LOT_BY[pk]; return l ? l.excelPrice : null; }
+function buyerOf(pk){ const e = PRICES[pk]; if (e && e.b !== undefined) return e.b; const l = LOT_BY[pk]; return l ? l.excelBuyer : ''; }
+function setPrice(pk, field, val){
+  const e = PRICES[pk] ||= {};
+  if (field === 'p'){ const n = parseFloat(String(val).replace(/[$,\s]/g,'')); e.p = isFinite(n) ? n : null; }
+  else e.b = String(val).trim();
+  if ((e.p === null || e.p === undefined) && !e.b) delete PRICES[pk];
+  savePrices();
+}
+function soldLots(){ return LOTS.filter(l => priceOf(l.pk) !== null).map(l => ({...l, price: priceOf(l.pk), buyer: buyerOf(l.pk), total: priceOf(l.pk) * l.head})); }
+function updateTally(){
+  const sold = soldLots(), t = $('#tally');
+  if (!sold.length){ t.hidden = true; return; }
+  const gross = sold.reduce((a,l) => a + l.total, 0), head = sold.reduce((a,l) => a + l.head, 0);
+  t.hidden = false;
+  t.innerHTML = `<span>${head} hd sold</span><b>${money(gross)}</b><span>avg ${money(gross/head, 0)}/hd</span>`;
+}
+function priceBox(r, compact){
+  if (r.status === 'out') return '';
+  const p = priceOf(r.pk), b = buyerOf(r.pk), h = r.penHead;
+  const tot = p !== null ? money(p * h) : '—';
+  const inputs = `<label class="money" title="Price per head"><span>$</span><input class="pin" data-pen="${esc(r.pk)}" inputmode="decimal" placeholder="per head" value="${p ?? ''}" aria-label="Price per head, lot ${esc(r.lot)}"></label>`;
+  const buyer = `<input class="bin" data-pen="${esc(r.pk)}" placeholder="Buyer" value="${esc(b)}" aria-label="Buyer, lot ${esc(r.lot)}">`;
+  if (compact) return {inputs, buyer, tot};
+  return `<div class="price${p !== null ? ' sold' : ''}" data-pen-box="${esc(r.pk)}">${inputs}<span>/hd${h > 1 ? ` × ${h} hd` : ''} = <span class="lt" data-lt="${esc(r.pk)}">${tot}</span></span>${buyer}</div>`;
+}
+
+/* ============ filtering ============ */
+const allTraits = () => [...TRAITS, ...Object.values(OTHER_TRAITS)];
+function passesBase(r, skip){
+  if (S.show === 'all' && r.status === 'out') return false;
+  if (S.show === 'changes' && !r.status) return false;
+  if (S.show === 'sub' && r.status !== 'sub') return false;
+  if (S.show === 'picks' && !PICKS.has(r.id)) return false;
+  if (S.show === 'unsold' && (r.status === 'out' || priceOf(r.pk) !== null)) return false;
+  if (S.show === 'sold' && priceOf(r.pk) === null) return false;
+  if (skip !== 'tier' && S.tier && !(r.best && r.best <= S.tier)) return false;
+  if (S.q){ const terms = norm(S.q).split(' '); if (!terms.every(t => r.search.includes(t))) return false; }
+  if (skip !== 'breed' && S.breeds.size && !S.breeds.has(r.breed)) return false;
+  if (skip !== 'cons' && S.cons.size && !S.cons.has(r.consignor)) return false;
+  if (skip !== 'codon' && S.codons.size && !S.codons.has(r.codon || 'Not tested')) return false;
+  if (skip !== 'birth' && S.births.size && !S.births.has(String(r.birth ?? '?'))) return false;
+  return true;
+}
+function passesRanges(r){
+  for (const [k,[lo,hi]] of Object.entries(S.ranges)){
+    if (lo === null && hi === null) continue;
+    const v = r.traits[k]; if (v === undefined) return false;
+    if (lo !== null && v < lo) return false; if (hi !== null && v > hi) return false;
+  }
+  return true;
+}
+const filtered = () => ROWS.filter(r => passesBase(r) && passesRanges(r));
+
+/* ============ controls ============ */
+function counts(skip, keyFn){ const m = new Map(); ROWS.forEach(r => { if (passesBase(r, skip) && passesRanges(r)) { const k = keyFn(r); m.set(k, (m.get(k)||0)+1); } }); return m; }
+function chipGroup(el, allVals, set, skip, keyFn, labelFn){
+  const c = counts(skip, keyFn);
+  el.innerHTML = allVals.map(v => `<button class="chip" aria-pressed="${set.has(v)}" data-v="${esc(v)}">${esc(labelFn ? labelFn(v) : v)} <span class="n">${c.get(v)||0}</span></button>`).join('');
+  el.querySelectorAll('.chip').forEach(b => b.onclick = () => { const v = b.dataset.v; set.has(v) ? set.delete(v) : set.add(v); render(); });
+}
+let BREEDS=[], CONS=[], CODONS=[], BIRTHS=[];
+function buildControls(){
+  BREEDS = [...new Set(ROWS.filter(r=>r.status!=='out'||true).map(r => r.breed))].filter(b=>b!=='—').sort();
+  CONS = [...new Set(ROWS.map(r => r.consignor).filter(Boolean))].sort();
+  const cset = new Set(ROWS.map(r => r.codon || 'Not tested'));
+  CODONS = ['RR','QR','QQ','Not tested'].filter(c => cset.has(c)).concat([...cset].filter(c => !['RR','QR','QQ','Not tested'].includes(c)));
+  BIRTHS = [...new Set(ROWS.map(r => String(r.birth ?? '?')))].sort();
+  // prune stale selections
+  [ [S.breeds,BREEDS],[S.cons,CONS],[S.codons,CODONS],[S.births,BIRTHS] ].forEach(([s,a]) => [...s].forEach(v => a.includes(v) || s.delete(v)));
+}
+function renderControls(){
+  const changes = ROWS.filter(r => r.status).length, subs = ROWS.filter(r => r.status==='sub').length;
+  const showOpts = [['all','Available'],['sub','Substitutions',subs],['changes','All sale-day changes',changes],['picks','My picks',PICKS.size],['unsold','Not sold yet'],['sold','Sold'],['everything','Everything']];
+  $('#statusChips').innerHTML = showOpts.map(([v,l,n]) => `<button class="chip${v==='sub'?' sub':''}" aria-pressed="${S.show===v}" data-v="${v}">${l}${n!==undefined?` <span class="n">${n}</span>`:''}</button>`).join('');
+  $('#statusChips').querySelectorAll('.chip').forEach(b => b.onclick = () => { S.show = b.dataset.v; render(); });
+  const hasPct = pctBreeds().length > 0;
+  $('#tierBox').hidden = !hasPct;
+  if (hasPct){
+    const tc = [5,10,20].map(t => ROWS.filter(r => passesBase(r,'tier') && passesRanges(r) && r.best && r.best <= t).length);
+    $('#tierChips').innerHTML = [5,10,20].map((t,i) => `<button class="chip t${t}" aria-pressed="${S.tier===t}" data-v="${t}">Top ${t}% <span class="n">${tc[i]}</span></button>`).join('');
+    $('#tierChips').querySelectorAll('.chip').forEach(b => b.onclick = () => { const t = +b.dataset.v; S.tier = S.tier === t ? null : t; render(); });
+    $('#legend').hidden = false;
+    $('#legend').innerHTML = `Breed rank for each EBV: <span class="sw t5">TOP 5%</span><span class="sw t10">TOP 10%</span><span class="sw t20">TOP 20%</span> <span>from percentile tables for ${esc(pctBreeds().join(', '))}</span>`;
+  } else { S.tier = null; $('#legend').hidden = true; }
+  chipGroup($('#breedChips'), BREEDS, S.breeds, 'breed', r => r.breed);
+  chipGroup($('#codonChips'), CODONS, S.codons, 'codon', r => r.codon || 'Not tested');
+  chipGroup($('#birthChips'), BIRTHS, S.births, 'birth', r => String(r.birth ?? '?'), v => BIRTH[v] || (v==='?'?'Unknown':v));
+  const cc = counts('cons', r => r.consignor);
+  $('#consChecks').innerHTML = CONS.map((c,i) => `<label for="cons${i}"><input type="checkbox" id="cons${i}" data-v="${esc(c)}" ${S.cons.has(c)?'checked':''}> ${esc(c)} <span class="n">${cc.get(c)||0}</span></label>`).join('');
+  $('#consChecks').querySelectorAll('input').forEach(i => i.onchange = () => { i.checked ? S.cons.add(i.dataset.v) : S.cons.delete(i.dataset.v); render(); });
+
+  // trait filters: traits with data among rows passing the non-trait filters
+  const base = ROWS.filter(r => passesBase(r));
+  const stats = {};
+  base.forEach(r => { for (const [k,v] of Object.entries(r.traits)) { const s = stats[k] ||= {min:Infinity,max:-Infinity,n:0}; s.min = Math.min(s.min,v); s.max = Math.max(s.max,v); s.n++; } });
+  PRESENT = allTraits().filter(t => stats[t.key] || S.ranges[t.key]);
+  const faces = new Set(base.map(r => r.face));
+  let html = '';
+  GROUPS.forEach(g => {
+    const ts = PRESENT.filter(t => t.group === g); if (!ts.length) return;
+    html += `<h2>${g}</h2>`;
+    if (/EBVs/.test(g) && faces.size > 1) html += `<p class="grp-note">Only ${g.startsWith('Black')?'blackface':'whiteface'} rams carry these.</p>`;
+    ts.forEach(t => {
+      const st = stats[t.key] || {min:0,max:0,n:0}; const r = S.ranges[t.key] || [null,null]; const dp = t.dp ?? 2;
+      html += `<div class="range"><label title="${esc(t.long)}${t.desc?' — '+esc(t.desc):''}" for="lo_${t.key}">${esc(t.label)} <small>${st.n}</small></label>
+        <input id="lo_${t.key}" data-k="${t.key}" data-i="0" inputmode="decimal" placeholder="${fmt(st.min,dp)}" value="${r[0]??''}" class="${r[0]!==null?'set':''}" aria-label="${esc(t.label)} minimum">
+        <input id="hi_${t.key}" data-k="${t.key}" data-i="1" inputmode="decimal" placeholder="${fmt(st.max,dp)}" value="${r[1]??''}" class="${r[1]!==null?'set':''}" aria-label="${esc(t.label)} maximum"></div>`;
+    });
+  });
+  if (html) html = `<h2 style="margin-top:22px">Trait ranges</h2><p class="grp-note">Type a minimum and/or maximum. Placeholders show the range in the current list.</p>` + html;
+  const tf = $('#traitFilters'); const focusId = document.activeElement && tf.contains(document.activeElement) ? document.activeElement.id : null;
+  tf.innerHTML = html;
+  tf.querySelectorAll('input').forEach(inp => {
+    inp.onchange = () => { const k = inp.dataset.k, i = +inp.dataset.i; const cur = S.ranges[k] || [null,null]; const n = inp.value.trim()==='' ? null : parseFloat(inp.value); cur[i] = isFinite(n) ? n : null; S.ranges[k] = cur; render(); };
+  });
+  if (focusId && document.getElementById(focusId)) document.getElementById(focusId).focus();
+
+  // sort options
+  const sel = $('#sortKey');
+  const opts = [['sale','Sale order'],['cons','Consignor A–Z'],['breed','Breed A–Z']].concat(PRESENT.map(t => [t.key, t.long]));
+  if (!opts.some(o => o[0] === S.sort)) S.sort = 'sale';
+  sel.innerHTML = opts.map(([v,l]) => `<option value="${v}" ${v===S.sort?'selected':''}>${esc(l)}</option>`).join('');
+  const isTrait = !['sale','cons','breed'].includes(S.sort);
+  $('#sortDir').hidden = !isTrait;
+  $('#sortDir').textContent = S.dir < 0 ? '↓ High first' : '↑ Low first';
+
+  // active filter pills
+  const act = [];
+  if (S.q) act.push(['q','“'+S.q+'”']);
+  if (S.tier) act.push(['tier', `Top ${S.tier}% of breed`]);
+  S.breeds.forEach(v => act.push(['breed:'+v, v])); S.cons.forEach(v => act.push(['cons:'+v, v]));
+  S.codons.forEach(v => act.push(['codon:'+v, v])); S.births.forEach(v => act.push(['birth:'+v, BIRTH[v]||v]));
+  Object.entries(S.ranges).forEach(([k,[lo,hi]]) => { if (lo===null && hi===null) return; const t = allTraits().find(x=>x.key===k); act.push(['range:'+k, `${t?t.label:k} ${lo!==null?'≥ '+lo:''}${lo!==null&&hi!==null?', ':''}${hi!==null?'≤ '+hi:''}`]); });
+  $('#activeFilters').innerHTML = act.map(([k,l]) => `<button data-k="${esc(k)}" title="Remove filter">${esc(l)}</button>`).join('');
+  $('#activeFilters').querySelectorAll('button').forEach(b => b.onclick = () => {
+    const [t, ...rest] = b.dataset.k.split(':'); const v = rest.join(':');
+    if (t==='q'){ S.q=''; $('#q').value=''; } else if (t==='tier') S.tier = null; else if (t==='breed') S.breeds.delete(v); else if (t==='cons') S.cons.delete(v);
+    else if (t==='codon') S.codons.delete(v); else if (t==='birth') S.births.delete(v); else if (t==='range') delete S.ranges[v];
+    render();
+  });
+  const nf = act.length + (S.show!=='all'?1:0);
+  $('#fCount').textContent = nf ? `(${nf})` : '';
+
+  // sale-day changes banner
+  const ch = ROWS.filter(r => r.status);
+  const b = $('#changes');
+  if (ch.length){
+    const nSub = ch.filter(r=>r.status==='sub').length, nOut = ch.filter(r=>r.status==='out').length, nSold = ch.filter(r=>r.status==='sold').length;
+    const parts = []; if (nSub) parts.push(`${nSub} substitution${nSub>1?'s':''}`); if (nOut) parts.push(`${nOut} out of sale`); if (nSold) parts.push(`${nSold} sold`);
+    b.hidden = false;
+    b.innerHTML = `<span class="eartag" aria-hidden="true">UPDATE</span><strong>Changes since the printed catalog</strong><span>${parts.join(' · ')}</span>
+      <span class="list">${ch.filter(r=>r.status!=='sold').map(r => `<a href="#lot-${esc(r.id)}" data-lot="${esc(r.id)}">${esc(r.lot)} ${r.status==='sub'?'SUB':'OUT'}</a>`).join('')}</span>
+      <button class="btn" id="showChanges">Show only changes</button>`;
+    $('#showChanges').onclick = () => { S.show = 'changes'; render(); $('#results').scrollIntoView({behavior:'smooth'}); };
+    b.querySelectorAll('a[data-lot]').forEach(a => a.onclick = () => { if (!filtered().some(r => r.id === a.dataset.lot)) { S.show='everything'; render(); } });
+  } else b.hidden = true;
+}
+
+/* ============ sorting ============ */
+function sorted(list){
+  const k = S.sort, d = S.dir;
+  const sale = (a,b) => a.lotNum - b.lotNum || a.lotSuf.localeCompare(b.lotSuf);
+  if (k === 'sale') return list.sort(sale);
+  if (k === 'cons') return list.sort((a,b) => a.consignor.localeCompare(b.consignor) || sale(a,b));
+  if (k === 'breed') return list.sort((a,b) => a.breed.localeCompare(b.breed) || sale(a,b));
+  return list.sort((a,b) => { const x = a.traits[k], y = b.traits[k];
+    if (x === undefined && y === undefined) return sale(a,b); if (x === undefined) return 1; if (y === undefined) return -1;
+    return (x - y) * -d || sale(a,b); });
+}
+
+/* ============ rendering ============ */
+const starSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>';
+function statusBlock(r){
+  if (r.status === 'sub') return `<div class="status sub"><span class="eartag">SUBSTITUTE</span><div>${r.replaces ? `Replaces the catalog ram tagged <b>${esc(r.replaces)}</b>. ` : 'This ram replaces the one in the printed catalog. '}${esc(r.note)}</div></div>`;
+  if (r.status === 'out') return `<div class="status out"><span class="eartag">OUT</span><div>Out of sale.${r.note ? ' '+esc(r.note) : ''}</div></div>`;
+  if (r.status === 'sold') return `<div class="status sold"><span class="eartag">SOLD</span><div>${r.priceN!==null?`<b>$${r.priceN.toLocaleString()}</b> `:''}${r.buyer?'to '+esc(r.buyer):''}${r.note?' '+esc(r.note):''}</div></div>`;
+  return '';
+}
+function card(r){
+  const cls = r.status ? ' is-'+r.status : '';
+  const ts = PRESENT.filter(t => r.traits[t.key] !== undefined);
+  const facts = [];
+  if (r.tag) facts.push(`Tag <b>${esc(r.tag)}</b>`);
+  if (r.birth) facts.push(`<b>${esc(BIRTH[r.birth] || r.birth)}</b>`);
+  facts.push(r.codon ? `Codon <b>${esc(r.codon)}</b>` : 'Codon <b>—</b>');
+  if (r.nsip) facts.push(`NSIP <b>${nsipLink(r.nsip)}</b>`);
+  const pen = r.pen.length ? `<div class="pair">Pen of ${r.pen.length+1}, sold together with ${r.pen.map(p => `<a href="#lot-${esc(p.id)}">${esc(p.lot)}</a>`).join(', ')}</div>` : '';
+  return `<article class="card${cls}" id="lot-${esc(r.id)}">
+    <div class="top">
+      <div class="lottag"><small>LOT</small><span>${esc(r.lot)}</span></div>
+      <div class="who"><div class="breed">${esc(r.breed)}</div><div class="cons">${esc(r.consignor)}</div></div>
+      <button class="star" aria-pressed="${PICKS.has(r.id)}" data-id="${esc(r.id)}" title="${PICKS.has(r.id)?'Remove from':'Add to'} my picks" aria-label="Pick lot ${esc(r.lot)}">${starSvg}</button>
+    </div>
+    ${statusBlock(r)}
+    <div class="facts">${facts.join('')}</div>
+    ${pen}
+    ${ts.length ? `<div class="traits">${ts.map(t => { const tier = r.tiers && r.tiers[t.key];
+      return `<div class="tr${t.key===S.sort?' hl':''}${tier?' t'+tier:''}" title="${esc(t.long)}${tier?` — top ${tier}% of ${esc(r.pctBreed)}`:''}"><div class="k">${esc(t.label)}</div><div class="v">${fmt(r.traits[t.key], t.dp)}</div>${tier?`<div class="pc">Top ${tier}%</div>`:''}</div>`; }).join('')}</div>` : ''}
+    ${r.comments ? `<p class="comments">${esc(r.comments)}</p>` : ''}
+    ${priceBox(r)}
+  </article>`;
+}
+function table(list){
+  const ts = PRESENT.filter(t => list.some(r => r.traits[t.key] !== undefined));
+  const cols = [['', null],['Lot','sale'],['Breed','breed'],['Consignor','cons'],['Tag',null],['NSIP ID',null],['Birth',null],['Codon',null],['$/hd',null],['Lot total',null],['Buyer',null]];
+  const th = cols.map(([l,k]) => `<th ${k?`data-sort="${k}"`:''} ${k && S.sort===k?'aria-sort="ascending"':''}>${l}</th>`).join('') +
+    ts.map(t => `<th data-sort="${t.key}" title="${esc(t.long)}" ${S.sort===t.key?`aria-sort="${S.dir<0?'descending':'ascending'}"`:''}>${esc(t.label)}</th>`).join('') + '<th>Comments</th>';
+  const rows = list.map(r => `<tr class="${r.status?'is-'+r.status:''}" id="lot-${esc(r.id)}">
+    <td><button class="star" aria-pressed="${PICKS.has(r.id)}" data-id="${esc(r.id)}" aria-label="Pick lot ${esc(r.lot)}">${starSvg}</button></td>
+    <td class="lot">${esc(r.lot)}${r.status==='sub'?'<span class="pill">SUB</span>':r.status==='out'?'<span class="pill out">OUT</span>':r.status==='sold'?'<span class="pill sold">SOLD</span>':''}</td>
+    <td>${esc(r.breed)}</td><td>${esc(r.consignor)}</td><td>${esc(r.tag)}</td><td>${r.nsip ? nsipLink(r.nsip) : ''}</td><td>${esc(BIRTH[r.birth]||r.birth||'')}</td><td>${esc(r.codon)}</td>
+    ${(() => { const pb = priceBox(r, true); return pb ? `<td>${pb.inputs}</td><td class="num"><span class="lt" data-lt="${esc(r.pk)}">${pb.tot}</span>${r.penHead>1?` <small style="color:var(--muted)">(${r.penHead} hd)</small>`:''}</td><td>${pb.buyer}</td>` : '<td></td><td></td><td></td>'; })()}
+    ${ts.map(t => { const tier = r.tiers && r.tiers[t.key]; return `<td class="num${t.key===S.sort?' hl':''}${tier?' t'+tier:''}"${tier?` title="Top ${tier}% of ${esc(r.pctBreed)}"`:''}>${fmt(r.traits[t.key], t.dp)}</td>`; }).join('')}
+    <td class="cmt">${esc([r.status==='sub' ? ('SUB'+(r.replaces?' for '+r.replaces:'')+(r.note?': '+r.note:'')) : '', r.comments].filter(Boolean).join(' — '))}</td></tr>`).join('');
+  return `<div class="tablewrap"><table><thead><tr>${th}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function sumBy(sold, keyFn){
+  const m = new Map();
+  LOTS.forEach(l => { const k = keyFn(l) || '—'; const g = m.get(k) || {k, lots:0, head:0, offered:0, gross:0, hi:null, lo:null}; g.offered += l.head; m.set(k, g); });
+  sold.forEach(l => { const k = keyFn(l) || '—'; const g = m.get(k) || {k, lots:0, head:0, offered:0, gross:0, hi:null, lo:null};
+    g.lots++; g.head += l.head; g.gross += l.total; g.hi = g.hi === null ? l.price : Math.max(g.hi, l.price); g.lo = g.lo === null ? l.price : Math.min(g.lo, l.price); m.set(k, g); });
+  return [...m.values()].sort((a,b) => b.gross - a.gross || a.k.localeCompare(b.k));
+}
+function sumTable(title, groups, withOffered){
+  const tot = groups.reduce((a,g) => ({lots:a.lots+g.lots, head:a.head+g.head, offered:a.offered+g.offered, gross:a.gross+g.gross}), {lots:0,head:0,offered:0,gross:0});
+  return `<section><h3>${esc(title)}</h3><div class="tablewrap"><table><thead><tr><th>${esc(title.replace(/^By (.)/,(m,c)=>c.toUpperCase()))}</th><th class="r">Lots</th><th class="r">Head${withOffered?' sold / offered':''}</th><th class="r">Gross</th><th class="r">Avg / hd</th><th class="r">High / hd</th><th class="r">Low / hd</th></tr></thead><tbody>
+    ${groups.map(g => `<tr${g.head?'':' style="color:var(--muted)"'}><td>${esc(g.k)}</td><td class="num">${g.lots}</td><td class="num">${g.head}${withOffered?` / ${g.offered}`:''}</td><td class="num">${g.head?money(g.gross):'—'}</td><td class="num">${g.head?money(g.gross/g.head,0):''}</td><td class="num">${money(g.hi)}</td><td class="num">${money(g.lo)}</td></tr>`).join('')}
+    <tr class="tot"><td>Total</td><td class="num">${tot.lots}</td><td class="num">${tot.head}${withOffered?` / ${tot.offered}`:''}</td><td class="num">${money(tot.gross)}</td><td class="num">${tot.head?money(tot.gross/tot.head,0):''}</td><td></td><td></td></tr>
+  </tbody></table></div></section>`;
+}
+function resultsTSV(sold){
+  const lines = [['Lot','Section','Breed','Consignor','Head','Price/hd','Lot total','Buyer'].join('\t')];
+  sold.forEach(l => lines.push([l.label, l.section, l.breed, l.consignor, l.head, l.price, l.total, l.buyer].join('\t')));
+  return lines.join('\n');
+}
+function results(){
+  const sold = soldLots();
+  const offeredHead = LOTS.reduce((a,l) => a + l.head, 0);
+  if (!sold.length) return `<div class="empty">No prices entered yet. Type a per-head price in the box at the bottom of any lot (or in the Table view) and the totals appear here.<br>Prices are saved in this browser only.</div>`;
+  const gross = sold.reduce((a,l) => a + l.total, 0), head = sold.reduce((a,l) => a + l.head, 0);
+  const top = sold.reduce((a,l) => !a || l.price > a.price ? l : a, null);
+  const hasBuyers = sold.some(l => l.buyer);
+  const stats = `<div class="stats">
+    <div class="stat hero"><div class="l">Gross sales</div><div class="n">${money(gross)}</div><div class="s">${sold.length} of ${LOTS.length} lots priced</div></div>
+    <div class="stat"><div class="l">Head sold</div><div class="n">${head}</div><div class="s">of ${offeredHead} offered</div></div>
+    <div class="stat"><div class="l">Average</div><div class="n">${money(gross/head,0)}</div><div class="s">per head</div></div>
+    <div class="stat"><div class="l">High seller</div><div class="n">${money(top.price)}</div><div class="s">Lot ${esc(top.label)} · ${esc(top.consignor)}</div></div>
+  </div>`;
+  const list = `<section><h3 class="res-h">Sold lots</h3><div class="tablewrap"><table><thead><tr><th>Lot</th><th>Breed</th><th>Consignor</th><th class="r">Head</th><th class="r">$ / hd</th><th class="r">Lot total</th><th>Buyer</th></tr></thead><tbody>
+    ${sold.map(l => `<tr><td class="lot"><a href="#lot-${esc(l.rows[0].id)}" data-go="${esc(l.rows[0].id)}">${esc(l.label)}</a></td><td>${esc(l.breed)}</td><td>${esc(l.consignor)}</td><td class="num">${l.head}</td><td class="num">${money(l.price)}</td><td class="num">${money(l.total)}</td><td>${esc(l.buyer)}</td></tr>`).join('')}
+  </tbody></table></div></section>`;
+  return `<div class="res-actions"><button class="btn" id="copyRes">Copy for Excel</button><button class="btn" id="dlRes">Download CSV</button><button class="btn" id="clrRes">Clear all prices</button>
+    <span class="res-note">Prices are saved in this browser only. Summaries cover the whole sale, not the current filters.</span></div>
+    <div id="copyWrap" hidden><textarea id="copyBox" readonly aria-label="Results to copy"></textarea></div>
+    ${stats}
+    <div class="sumgrid">${sumTable('By breed', sumBy(sold, l => l.breed), true)}${sumTable('By consignor', sumBy(sold, l => l.consignor), true)}
+    ${sumTable('By section', sumBy(sold, l => l.section), true)}${hasBuyers ? sumTable('By buyer', sumBy(sold.map(l => ({...l, buyer: l.buyer || 'No buyer entered'})), l => l.buyer), false) : ''}</div>
+    ${list}`;
+}
+function wireResults(){
+  const sold = soldLots();
+  const cp = $('#copyRes'); if (!cp) return;
+  cp.onclick = async () => { const t = resultsTSV(sold);
+    try { await navigator.clipboard.writeText(t); cp.textContent = 'Copied – paste into Excel'; setTimeout(() => cp.textContent = 'Copy for Excel', 2500); }
+    catch(e){ $('#copyWrap').hidden = false; const b = $('#copyBox'); b.value = t; b.focus(); b.select(); cp.textContent = 'Select all and copy the box below'; } };
+  $('#dlRes').onclick = () => { const csv = resultsTSV(sold).split('\n').map(l => l.split('\t').map(c => /[",]/.test(c) ? '"' + c.replace(/"/g,'""') + '"' : c).join(',')).join('\n');
+    const btn = $('#dlRes');
+    if (window.claude && window.claude.use){   // inside the Claude viewer: ask it to save the file
+      window.claude.use('downloads').then(dl => {
+        if (!dl){ btn.textContent = 'Download unavailable here – use Copy for Excel'; return; }
+        return dl.save({filename:'ram-sale-results.csv', data:csv}).catch(e => { if (e && e.code !== 'declined') btn.textContent = 'Download unavailable here – use Copy for Excel'; });
+      });
+      return;
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = 'ram-sale-results.csv'; document.body.appendChild(a); a.click(); a.remove(); };
+  const clr = $('#clrRes'); let armed = false;
+  clr.onclick = () => { if (!armed){ armed = true; clr.textContent = 'Click again to clear every price'; setTimeout(() => { armed = false; if (clr.isConnected) clr.textContent = 'Clear all prices'; }, 4000); return; }
+    PRICES = {}; savePrices(); updateTally(); render(); };
+  $('#results').querySelectorAll('a[data-go]').forEach(a => a.onclick = () => { S.show = 'everything'; setView('cards'); });
+}
+function render(){
+  if (!ROWS.length) return;
+  renderControls();
+  updateTally();
+  $('.layout').classList.toggle('results-mode', S.view === 'results');
+  if (S.view === 'results'){ $('#count').innerHTML = 'Sale results'; $('#results').innerHTML = results(); wireResults(); return; }
+  const list = sorted(filtered());
+  const hidden = ROWS.filter(r => r.status==='out').length;
+  $('#count').innerHTML = `${list.length} ram${list.length===1?'':'s'}<small>${S.show==='all' && hidden ? `${hidden} out of sale hidden` : ''}</small>`;
+  const res = $('#results');
+  if (!list.length){ res.innerHTML = `<div class="empty">No rams match these filters. <button class="linkbtn" id="clr2">Clear all filters</button></div>`; $('#clr2').onclick = clearAll; return; }
+  if (S.view === 'table') res.innerHTML = table(list);
+  else if (S.sort === 'sale'){
+    // group by section in sale order
+    let html = '', cur = null, buf = [];
+    const flush = () => { if (buf.length) html += `<h2 class="section-h">${esc(cur)} <small>${buf.length} ram${buf.length>1?'s':''}</small></h2><div class="cards">${buf.map(card).join('')}</div>`; buf = []; };
+    list.forEach(r => { if (r.section !== cur){ flush(); cur = r.section; } buf.push(r); }); flush();
+    res.innerHTML = html;
+  } else res.innerHTML = `<div class="cards">${list.map(card).join('')}</div>`;
+  res.querySelectorAll('.star').forEach(b => b.onclick = () => { const id = b.dataset.id; PICKS.has(id) ? PICKS.delete(id) : PICKS.add(id); savePicks(); render(); });
+  res.querySelectorAll('th[data-sort]').forEach(th => th.onclick = () => { const k = th.dataset.sort; if (S.sort === k) S.dir *= -1; else { S.sort = k; const t = allTraits().find(x=>x.key===k); S.dir = t && t.dir === 'low' ? 1 : -1; } render(); });
+}
+function clearAll(){ S.q=''; $('#q').value=''; S.breeds.clear(); S.cons.clear(); S.codons.clear(); S.births.clear(); S.ranges={}; S.show='all'; S.tier=null; render(); }
+
+/* ============ events ============ */
+let qT; $('#q').addEventListener('input', e => { clearTimeout(qT); qT = setTimeout(() => { S.q = e.target.value.trim(); render(); }, 120); });
+$('#sortKey').onchange = e => { S.sort = e.target.value; const t = allTraits().find(x=>x.key===S.sort); S.dir = t && t.dir === 'low' ? 1 : -1; render(); };
+$('#sortDir').onclick = () => { S.dir *= -1; render(); };
+const setView = v => { S.view = v; ['cards','table','results'].forEach(x => $('#v'+x[0].toUpperCase()+x.slice(1)).setAttribute('aria-pressed', v===x)); try{localStorage.setItem('ramsale-view', v);}catch(e){} render(); };
+$('#vCards').onclick = () => setView('cards'); $('#vTable').onclick = () => setView('table'); $('#vResults').onclick = () => setView('results');
+['cards','table','results'].forEach(x => $('#v'+x[0].toUpperCase()+x.slice(1)).setAttribute('aria-pressed', S.view===x));
+$('#tally').onclick = () => setView('results');
+// price entry: save as you type, keep pen-mates in sync, Enter jumps to the next lot
+$('#results').addEventListener('input', e => {
+  const el = e.target; if (!el.dataset || !el.dataset.pen) return;
+  const pk = el.dataset.pen, isP = el.classList.contains('pin');
+  setPrice(pk, isP ? 'p' : 'b', el.value);
+  document.querySelectorAll(`[data-pen="${CSS.escape(pk)}"].${isP?'pin':'bin'}`).forEach(o => { if (o !== el) o.value = el.value; });
+  const p = priceOf(pk), l = LOT_BY[pk];
+  document.querySelectorAll(`[data-lt="${CSS.escape(pk)}"]`).forEach(o => o.textContent = p !== null && l ? money(p * l.head) : '—');
+  document.querySelectorAll(`[data-pen-box="${CSS.escape(pk)}"]`).forEach(o => o.classList.toggle('sold', p !== null));
+  updateTally();
+});
+$('#results').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || !e.target.classList || !e.target.classList.contains('pin')) return;
+  e.preventDefault();
+  const all = [...document.querySelectorAll('#results .pin')], pk = e.target.dataset.pen;
+  const next = all.slice(all.indexOf(e.target) + 1).find(o => o.dataset.pen !== pk);
+  if (next){ next.focus(); next.select(); next.scrollIntoView({block:'center', behavior:'smooth'}); }
+});
+$('#clearAll').onclick = clearAll;
+$('#filtersToggle').onclick = () => { const o = $('#side').classList.toggle('open'); $('#filtersToggle').setAttribute('aria-expanded', o); };
+$('#previewFile').onchange = e => { const f = e.target.files[0]; if (!f) return;
+  f.arrayBuffer().then(b => {
+    const wb = XLSX.read(b, {type:'array'});
+    const isCatalog = wb.SheetNames.some(n => XLSX.utils.sheet_to_json(wb.Sheets[n], {header:1, defval:null}).slice(0,6).some(r => r && r.some(c => ['lot #','lot'].includes(norm(c)))));
+    if (isCatalog){ S.ranges = {}; ingest(b, new Date(f.lastModified), f.name); return; }
+    const p = parsePct(wb, false);
+    const pn = $('#previewNote'); pn.hidden = false;
+    if (!Object.keys(p).length){ pn.innerHTML = `<b>${esc(f.name)}</b> has no lot sheet and no percentile table this page can read. See the “How to fill” tab of the percentiles template.`; return; }
+    PCT_EXT = p; PCT_SRC = f.name; applyPct(); render();
+    pn.innerHTML = `Previewing percentile tables from <b>${esc(f.name)}</b> (${esc(pctBreeds().join(', '))}). Only you see this. <button class="linkbtn" id="endPreview">Back to the published catalog</button>`;
+    $('#endPreview').onclick = () => { pn.hidden = true; loadDefault(); };
+  }); e.target.value=''; };
+$('#glossBtn').onclick = () => {
+  const groups = GROUPS.map(g => { const ts = TRAITS.filter(t => t.group===g && t.desc); return ts.length ? `<h4 style="font-family:var(--display);font-size:18px;margin:18px 0 0">${g}</h4><dl>${ts.map(t => `<dt>${esc(t.label)} · ${esc(t.long)}${t.dir?` <small style="font-weight:400;color:var(--muted)">(${t.dir==='low'?'lower':'higher'} is usually preferred)</small>`:''}</dt><dd>${esc(t.desc)}</dd>`).join('')}</dl>` : ''; }).join('');
+  $('#glossBody').innerHTML = `<div class="note">EBVs (estimated breeding values) predict how a ram's lambs will differ from the breed average. <b>Blackface and whiteface EBVs are breed-specific and can't be compared with each other.</b> Ratios compare a ram with his contemporaries in the same flock, where 100 is the group average.</div>
+    ${pctBreeds().length ? `<div class="note"><b>Colored EBVs</b> are in the <span class="sw t5">TOP 5%</span> <span class="sw t10">TOP 10%</span> or <span class="sw t20">TOP 20%</span> of the ram's breed, using the percentile tables for ${esc(pctBreeds().join(', '))}. For traits where lower is better (such as YFD or PFAT), the top tiers are the lowest values.</div>` : ''}
+    <dl><dt>Scrapie genotype (codon 171)</dt><dd>This is a genetic risk factor for determining a sheep’s susceptibility to scrapie. RR rams are generally considered the least susceptible, followed by QR being lower risk and QQ being the most susceptible.</dd></dl>` + groups;
+  $('#gloss').showModal();
+};
+$('#glossClose').onclick = () => $('#gloss').close();
+
+/* ============ keep screen on (Screen Wake Lock API) ============ */
+(function(){
+  const btn = $('#wakeBtn');
+  if (!('wakeLock' in navigator)) return;          // older browsers: no button
+  btn.hidden = false;
+  let lock = null, want = false;
+  const show = (on, msg) => { btn.setAttribute('aria-pressed', on); btn.textContent = msg || (on ? 'Screen stays on ✓' : 'Keep screen on'); };
+  async function acquire(){
+    try {
+      lock = await navigator.wakeLock.request('screen');
+      show(true);
+      lock.addEventListener('release', () => { lock = null; if (!want) show(false); });
+    } catch(e){
+      want = false; show(false, 'Screen lock not allowed here');
+      setTimeout(() => show(false), 3500);
+    }
+  }
+  btn.onclick = async () => {
+    want = !want;
+    try { localStorage.setItem('ramsale-wake', want ? '1' : ''); } catch(e){}
+    if (want) acquire(); else { if (lock) await lock.release(); lock = null; show(false); }
+  };
+  // the browser drops the lock when the tab is hidden or the phone is locked; take it back on return
+  document.addEventListener('visibilitychange', () => { if (want && !lock && document.visibilityState === 'visible') acquire(); });
+  // remember the choice: re-enable on the first tap after the page reloads
+  let saved = ''; try { saved = localStorage.getItem('ramsale-wake') || ''; } catch(e){}
+  if (saved){ want = true; show(false, 'Tap anywhere to keep screen on');
+    const once = () => { document.removeEventListener('pointerdown', once, true); if (want && !lock) acquire(); };
+    document.addEventListener('pointerdown', once, true); acquire(); }
+})();
+
+loadDefault();
+</script>
