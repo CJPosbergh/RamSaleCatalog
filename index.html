@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
 :root{
+  color-scheme:light;
   --ground:#EDEFEA; --surface:#FFFFFF; --surface-2:#F6F7F4; --ink:#1B231F; --muted:#5A655E; --line:#D3D9D1;
   --accent:#2C4C68; --accent-soft:#DCE5EE; --accent-ink:#FFFFFF;
   --tag:#F2C230; --tag-soft:#FDF3CF; --tag-ink:#3A2D00;
@@ -17,22 +18,6 @@
   --display:"Zilla Slab",Rockwell,"Roboto Slab",Georgia,serif;
   --body:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-}
-@media not all{:root:not([data-theme="light"]){
-  --ground:#121614; --surface:#1A201D; --surface-2:#202723; --ink:#E4E9E3; --muted:#9BA69E; --line:#2E3632;
-  --accent:#8EB2D4; --accent-soft:#223445; --accent-ink:#0E1822;
-  --tag:#E6B726; --tag-soft:#3A3113; --tag-ink:#231A00;
-  --out:#6E746F; --good:#6EC08E; --good-soft:#18301F; --hl:#2D2A18;
-  --t5:#FF87F6; --t5-ink:#1A1A1A; --t10:#61CBF3; --t10-ink:#1A1A1A; --t20:#83E28E; --t20-ink:#1A1A1A;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
-}}
-:root[data-theme="dark"]{
-  --ground:#121614; --surface:#1A201D; --surface-2:#202723; --ink:#E4E9E3; --muted:#9BA69E; --line:#2E3632;
-  --accent:#8EB2D4; --accent-soft:#223445; --accent-ink:#0E1822;
-  --tag:#E6B726; --tag-soft:#3A3113; --tag-ink:#231A00;
-  --out:#6E746F; --good:#6EC08E; --good-soft:#18301F; --hl:#2D2A18;
-  --t5:#FF87F6; --t5-ink:#1A1A1A; --t10:#61CBF3; --t10-ink:#1A1A1A; --t20:#83E28E; --t20-ink:#1A1A1A;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -164,6 +149,12 @@ th[aria-sort="descending"]::after{content:" ▼"}
 th[aria-sort="ascending"]::after{content:" ▲"}
 td.num{font-family:var(--mono);text-align:right}
 td.lot{font-family:var(--mono);font-weight:600}
+/* frozen star + lot columns in the catalog table */
+table.cat .c0,table.cat .c1{position:sticky;z-index:2;background:var(--surface)}
+table.cat .c0{left:0;width:46px;min-width:46px;max-width:46px;padding-inline:6px}
+table.cat .c1{left:46px;box-shadow:inset -1px 0 0 var(--line),6px 0 8px -6px rgba(0,0,0,.25)}
+table.cat th.c0,table.cat th.c1{z-index:4;background:var(--surface-2)}
+table.cat tr.is-sub .c0,table.cat tr.is-sub .c1{background:var(--tag-soft)}
 td.cmt{white-space:normal;min-width:220px;color:var(--muted)}
 tr.is-sub td{background:var(--tag-soft)}
 tr.is-out td{color:var(--out);text-decoration:line-through}
@@ -813,16 +804,16 @@ function card(r){
 function table(list){
   const ts = PRESENT.filter(t => list.some(r => r.traits[t.key] !== undefined));
   const cols = [['', null],['Lot','sale'],['Breed','breed'],['Consignor','cons'],['Tag',null],['NSIP ID',null],['Birth',null],['Codon',null],['$/hd',null],['Lot total',null],['Buyer',null]];
-  const th = cols.map(([l,k]) => `<th ${k?`data-sort="${k}"`:''} ${k && S.sort===k?'aria-sort="ascending"':''}>${l}</th>`).join('') +
+  const th = cols.map(([l,k],i) => `<th ${i<2?`class="c${i}"`:''} ${k?`data-sort="${k}"`:''} ${k && S.sort===k?'aria-sort="ascending"':''}>${l}</th>`).join('') +
     ts.map(t => `<th data-sort="${t.key}" title="${esc(t.long)}" ${S.sort===t.key?`aria-sort="${S.dir<0?'descending':'ascending'}"`:''}>${esc(t.label)}</th>`).join('') + '<th>Comments</th>';
   const rows = list.map(r => `<tr class="${r.status?'is-'+r.status:''}" id="lot-${esc(r.id)}">
-    <td><button class="star" aria-pressed="${PICKS.has(r.id)}" data-id="${esc(r.id)}" aria-label="Pick lot ${esc(r.lot)}">${starSvg}</button></td>
-    <td class="lot">${esc(r.lot)}${r.status==='sub'?'<span class="pill">SUB</span>':r.status==='out'?'<span class="pill out">OUT</span>':r.status==='sold'?'<span class="pill sold">SOLD</span>':''}</td>
+    <td class="c0"><button class="star" aria-pressed="${PICKS.has(r.id)}" data-id="${esc(r.id)}" aria-label="Pick lot ${esc(r.lot)}">${starSvg}</button></td>
+    <td class="lot c1">${esc(r.lot)}${r.status==='sub'?'<span class="pill">SUB</span>':r.status==='out'?'<span class="pill out">OUT</span>':r.status==='sold'?'<span class="pill sold">SOLD</span>':''}</td>
     <td>${esc(r.breed)}</td><td>${esc(r.consignor)}</td><td>${esc(r.tag)}</td><td>${r.nsip ? nsipLink(r.nsip) : ''}</td><td>${esc(BIRTH[r.birth]||r.birth||'')}</td><td>${esc(r.codon)}</td>
     ${(() => { const pb = priceBox(r, true); return pb ? `<td>${pb.inputs}</td><td class="num"><span class="lt" data-lt="${esc(r.pk)}">${pb.tot}</span>${r.penHead>1?` <small style="color:var(--muted)">(${r.penHead} hd)</small>`:''}</td><td>${pb.buyer}</td>` : '<td></td><td></td><td></td>'; })()}
     ${ts.map(t => { const tier = r.tiers && r.tiers[t.key]; return `<td class="num${t.key===S.sort?' hl':''}${tier?' t'+tier:''}"${tier?` title="Top ${tier}% of ${esc(r.pctBreed)}"`:''}>${fmt(r.traits[t.key], t.dp)}</td>`; }).join('')}
     <td class="cmt">${esc([r.status==='sub' ? ('SUB'+(r.replaces?' for '+r.replaces:'')+(r.note?': '+r.note:'')) : '', r.comments].filter(Boolean).join(' — '))}</td></tr>`).join('');
-  return `<div class="tablewrap"><table><thead><tr>${th}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<div class="tablewrap"><table class="cat"><thead><tr>${th}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function sumBy(sold, keyFn){
   const m = new Map();
