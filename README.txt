@@ -3,6 +3,7 @@ RAM SALE ONLINE CATALOG - how to host and update
 
 This folder is the whole website:
   index.html        the catalog page (don't need to edit it)
+  media/            lot photos (and small video files) referenced from the spreadsheet
   catalog.xlsx      the sale order spreadsheet the page reads
   percentiles.xlsx  breed percentile cutoffs for the top 5/10/20% highlights (optional)
 
@@ -54,6 +55,27 @@ KEEP SCREEN ON (phones and tablets)
   current browser: Chrome/Android, or Safari on iPhone/iPad with iOS 16.4 or later.
   If the phone is locked by hand or you switch apps, it turns back on when you return.
   Low Power Mode on iPhone can still dim the screen.
+
+PRINTED CATALOG
+  "Print catalog" lays the lots out like the printed sale book (2 columns x 5 lots per
+  letter page, section headings, Comments and Price boxes), straight from catalog.xlsx.
+  Choose the whole sale, the current filtered list, or your picks; which sections; EBV
+  colors on/off; and the first page number (so it can slot in after your front pages).
+  - Print / Save as PDF: opens the browser print dialog. Choose "Save as PDF" as the
+    printer, margins Default, and turn ON "Background graphics" so gray labels and
+    colors print.
+  - Download print file: saves a standalone page you can open and print any time.
+  Front matter (welcome, schedule, ads, consignor list) still comes from your design
+  file; combine the two PDFs for the full book.
+
+PHOTOS, VIDEOS AND LINKS
+  Photo, Video and Link columns sit after Status Note on each sheet.
+  - Photo: a file name (57A.jpg - put the file in the media folder) or a full web address.
+    Several photos: separate with spaces. Shown on the lot card; click to enlarge.
+  - Video: a YouTube (unlisted is fine) or Vimeo link - recommended - or an .mp4 in media.
+    Plays in a pop-up without leaving the catalog.
+  - Link: any web page; shown as "More info".
+  Buyers can filter to "With photos / video".
 
 COLUMNS
   Headers are matched by name, so you can reorder columns or add sheets. Any sheet with a
