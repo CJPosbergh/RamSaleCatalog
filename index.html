@@ -222,6 +222,31 @@ td .money{padding-left:5px} td .pin{width:70px;font-size:13px} td .bin{width:110
 td.r,th.r{text-align:right}
 tr.tot td{font-weight:700;border-top:2px solid var(--line)}
 #copyBox{width:100%;height:160px;font-family:var(--mono);font-size:12px;margin-bottom:12px}
+/* media */
+.mthumb{display:block;position:relative;padding:0;border:0;border-radius:8px;overflow:hidden;cursor:zoom-in;background:var(--surface-2);aspect-ratio:16/9;max-width:100%;width:100%}
+.mthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.mcount{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.65);color:#fff;font:600 12px var(--body);padding:3px 8px;border-radius:999px}
+.mrow{display:flex;gap:8px;flex-wrap:wrap}
+.mbtn{font-size:13px;padding:5px 10px;text-decoration:none;color:var(--accent)}
+.mdlg{width:min(960px,calc(100vw - 32px))}
+.mbody{background:#111;display:flex;align-items:center;justify-content:center;min-height:200px}
+.mbody img,.mbody video{max-width:100%;max-height:75vh;display:block}
+.mframe{position:relative;width:100%;aspect-ratio:16/9}
+.mframe iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+/* print dialog */
+.pform fieldset{border:1px solid var(--line);border-radius:10px;padding:8px 12px 10px;margin:12px 0 0}
+.pform legend{font:700 12px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:0 4px}
+.pform label{display:flex;gap:8px;align-items:center;padding:3px 0;font-size:14px}
+.pform .n{color:var(--muted);font-size:12px}
+.pchecks{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.prow2{display:flex;gap:10px;align-items:center;padding:4px 0}
+.prow2 label{min-width:150px}
+.prow2 input{border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--surface-2);flex:1}
+#printRoot{display:none}
+@media print{
+  body.pc > *:not(#printRoot){display:none!important}
+  body.pc #printRoot{display:block!important}
+}
 @media print{
   .bar,aside,footer,.star,.changes,.active,.res-actions{display:none!important}
   .layout{display:block}
@@ -255,6 +280,7 @@ tr.tot td{font-weight:700;border-top:2px solid var(--line)}
         <button id="vResults" aria-pressed="false">Results</button>
       </div>
       <button class="btn" id="glossBtn">Trait guide</button>
+      <button class="btn" id="printBtn">Print catalog</button>
       <button class="btn" id="wakeBtn" hidden aria-pressed="false" title="Stop this phone or tablet from dimming or locking while the catalog is open">Keep screen on</button>
       <button class="tally" id="tally" hidden title="Open sale results"></button>
     </div>
@@ -297,13 +323,43 @@ tr.tot td{font-weight:700;border-top:2px solid var(--line)}
   <div class="wrap">
     <div id="source">Catalog data is read from the sale order spreadsheet each time this page loads.</div>
     <div class="ctl">
-      <button class="btn" onclick="window.print()">Print this list</button>
+      <button class="btn" id="printBtn2">Print catalog…</button>
       <label class="btn" for="previewFile" title="Sale office: check a new spreadsheet before uploading it. Only you see the preview.">Preview a spreadsheet…</label>
       <input type="file" id="previewFile" accept=".xlsx,.xls,.xlsm" hidden>
     </div>
   </div>
 </footer>
 
+<dialog id="printDlg">
+  <div class="dlg-h"><h3>Print catalog</h3><button class="btn" id="printClose">Close</button></div>
+  <div class="dlg-b pform">
+    <p class="res-note" style="margin-top:10px">Lays the lots out like the printed sale book: two columns, five lots per column on letter paper. Print it, save it as a PDF, or download a file to print later.</p>
+    <fieldset><legend>Which lots</legend>
+      <label for="ps_all"><input type="radio" name="pscope" id="ps_all" value="all" checked> Whole sale</label>
+      <label for="ps_filt"><input type="radio" name="pscope" id="ps_filt" value="filtered"> Only lots matching the current filters <span class="n" id="ps_filt_n"></span></label>
+      <label for="ps_picks"><input type="radio" name="pscope" id="ps_picks" value="picks"> Only my picks <span class="n" id="ps_picks_n"></span></label>
+    </fieldset>
+    <fieldset><legend>Sections</legend><div id="psSections" class="pchecks"></div></fieldset>
+    <fieldset><legend>Options</legend>
+      <label for="po_color"><input type="checkbox" id="po_color" checked> Color the top 5 / 10 / 20% EBVs</label>
+      <label for="po_out"><input type="checkbox" id="po_out"> Include lots that are out of sale</label>
+      <label for="po_price"><input type="checkbox" id="po_price"> Fill in prices I've entered</label>
+      <div class="prow2"><label for="po_title">Title on first page</label><input id="po_title" value="The Ram Sale Offering"></div>
+      <div class="prow2"><label for="po_page">First page number</label><input id="po_page" type="number" min="1" value="1" style="width:80px"></div>
+    </fieldset>
+    <div class="res-actions" style="margin:16px 0 0">
+      <button class="btn primary" id="doPrint">Print / Save as PDF</button>
+      <button class="btn" id="doExport">Download print file</button>
+      <span class="res-note" id="printMsg"></span>
+    </div>
+  </div>
+</dialog>
+<div id="printRoot" aria-hidden="true"></div>
+
+<dialog id="mediaDlg" class="mdlg">
+  <div class="dlg-h"><h3 id="mediaTitle">Lot</h3><div class="ctl"><button class="btn" id="mPrev" aria-label="Previous">‹</button><button class="btn" id="mNext" aria-label="Next">›</button><a class="btn" id="mOpen" target="_blank" rel="noopener">Open ↗</a><button class="btn" id="mediaClose">Close</button></div></div>
+  <div id="mediaBody" class="mbody"></div>
+</dialog>
 <dialog id="gloss">
   <div class="dlg-h"><h3>Reading the numbers</h3><button class="btn" id="glossClose">Close</button></div>
   <div class="dlg-b" id="glossBody"></div>
@@ -320,7 +376,8 @@ const PCT_FILE = 'percentiles.xlsx';   // optional breed percentile tables (top 
 const BASE = {
   'lot #':'lot','lot':'lot','consignor':'consignor','breed':'breed','head':'head','flock tag':'tag','tag':'tag',
   'nsip id':'nsip','scrapie tag':'scrapieTag','birth type':'birth','scrapie genotype':'codon','codon':'codon',
-  'comments':'comments','status':'status','replaces tag':'replaces','status note':'note','price':'price','buyer':'buyer'
+  'comments':'comments','status':'status','replaces tag':'replaces','status note':'note','price':'price','buyer':'buyer',
+  'photo':'photo','photos':'photo','image':'photo','images':'photo','picture':'photo','pictures':'photo','video':'video','videos':'video','link':'link','links':'link','url':'link','more info':'link','website':'link'
 };
 const TRAITS = [
   // measured
@@ -550,7 +607,7 @@ function parseWorkbook(wb){
       const rec = {section, face, traits:{}, extra:[]};
       cols.forEach((c, i) => {
         if (!c) return; const v = row[i]; if (v === null || v === '' ) return;
-        if (c.kind === 'base'){ if (c.key === 'comments' && rec.comments) rec.comments += ' · ' + str(v); else rec[c.key] = v; }
+        if (c.kind === 'base'){ if (c.key === 'comments' && rec.comments) rec.comments += ' · ' + str(v); else if (['photo','video','link'].includes(c.key)) rec[c.key] = (rec[c.key] ? rec[c.key] + ' ' : '') + str(v); else rec[c.key] = v; }
         else if (c.kind === 'trait'){ const n = num(v); if (n !== null) rec.traits[c.t.key] = n; }
         else {
           const n = num(v);
@@ -570,6 +627,7 @@ function parseWorkbook(wb){
       rec.birth = num(rec.birth);
       rec.comments = [str(rec.comments), ...rec.extra].filter(Boolean).join(' · ');
       rec.replaces = str(rec.replaces); rec.note = str(rec.note); rec.buyer = str(rec.buyer);
+      rec.photos = mediaList(rec.photo); rec.videos = mediaList(rec.video); rec.links = mediaList(rec.link);
       rec.priceN = num(rec.price);
       rec.id = rec.lot;
       rec.search = norm([rec.lot, rec.consignor, rec.breed, rec.tag, rec.nsip, rec.scrapieTag, rec.comments, rec.note, rec.replaces, rec.codon].join(' '));
@@ -596,6 +654,45 @@ function parseWorkbook(wb){
   LOT_BY = Object.fromEntries(LOTS.map(l => [l.pk, l]));
   return out;
 }
+
+/* ============ photos, videos, links ============ */
+const MEDIA_DIR = 'media/';   // bare file names in the sheet (e.g. 57A.jpg) are looked up in this folder
+function mediaList(v){ return str(v).split(/[\s,;]+/).map(x => x.trim()).filter(Boolean).map(x => /^(https?:)?\/\//i.test(x) || x.includes('/') ? x : MEDIA_DIR + x); }
+function embedOf(u){
+  let m = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,})/i.exec(u);
+  if (m) return {kind:'frame', src:'https://www.youtube-nocookie.com/embed/' + m[1] + '?rel=0'};
+  m = /vimeo\.com\/(?:video\/)?(\d+)/i.exec(u); if (m) return {kind:'frame', src:'https://player.vimeo.com/video/' + m[1]};
+  if (/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(u)) return {kind:'video', src:u};
+  if (/\.(jpe?g|png|gif|webp|avif)(\?|#|$)/i.test(u)) return {kind:'img', src:u};
+  return {kind:'link', src:u};
+}
+function mediaItems(r){ return [...r.photos.map(u => ({...embedOf(u), kind: embedOf(u).kind === 'link' ? 'img' : embedOf(u).kind})), ...r.videos.map(embedOf)]; }
+function mediaBlock(r){
+  const hasP = r.photos.length, hasV = r.videos.length, hasL = r.links.length; if (!hasP && !hasV && !hasL) return '';
+  const pic = hasP ? `<button class="mthumb" data-media="${esc(r.id)}" data-i="0" aria-label="View photos of lot ${esc(r.lot)}"><img src="${esc(r.photos[0])}" alt="Lot ${esc(r.lot)}" loading="lazy" onerror="this.closest('.mthumb').hidden=true">${hasP > 1 ? `<span class="mcount">+${hasP-1}</span>` : ''}</button>` : '';
+  const btns = [hasV ? `<button class="btn mbtn" data-media="${esc(r.id)}" data-i="${hasP}">▶ Video${hasV>1?'s ('+hasV+')':''}</button>` : '',
+    ...r.links.map((u,i) => `<a class="btn mbtn" href="${esc(u)}" target="_blank" rel="noopener">${r.links.length>1?'Link '+(i+1):'More info'} ↗</a>`)].filter(Boolean).join('');
+  return `${pic}${btns ? `<div class="mrow">${btns}</div>` : ''}`;
+}
+function mediaCell(r){
+  const a = [];
+  if (r.photos.length) a.push(`<button class="linkbtn" data-media="${esc(r.id)}" data-i="0">Photo${r.photos.length>1?'s':''}</button>`);
+  if (r.videos.length) a.push(`<button class="linkbtn" data-media="${esc(r.id)}" data-i="${r.photos.length}">Video</button>`);
+  r.links.forEach(u => a.push(`<a class="nsip" href="${esc(u)}" target="_blank" rel="noopener">Link</a>`));
+  return a.join(' · ');
+}
+let MV = {items:[], i:0, lot:''};
+function showMedia(){
+  const it = MV.items[MV.i], box = $('#mediaBody'); if (!it) return;
+  $('#mediaTitle').textContent = `Lot ${MV.lot}` + (MV.items.length > 1 ? ` · ${MV.i+1} of ${MV.items.length}` : '');
+  $('#mPrev').hidden = $('#mNext').hidden = MV.items.length < 2;
+  if (it.kind === 'img') box.innerHTML = `<img src="${esc(it.src)}" alt="Lot ${esc(MV.lot)}">`;
+  else if (it.kind === 'video') box.innerHTML = `<video src="${esc(it.src)}" controls playsinline preload="metadata"></video>`;
+  else if (it.kind === 'frame') box.innerHTML = `<div class="mframe"><iframe src="${esc(it.src)}" title="Video of lot ${esc(MV.lot)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
+  else box.innerHTML = `<p style="padding:24px;text-align:center">This video opens on another site. <a class="nsip" href="${esc(it.src)}" target="_blank" rel="noopener">Open it ↗</a></p>`;
+  $('#mOpen').href = it.src;
+}
+function openMedia(id, i){ const r = ROWS.find(x => x.id === id); if (!r) return; MV = {items: mediaItems(r), i: +i || 0, lot: r.lot}; showMedia(); $('#mediaDlg').showModal(); }
 
 /* ============ prices ============ */
 function priceOf(pk){ const e = PRICES[pk]; if (e && e.p !== undefined && e.p !== null && e.p !== '') return e.p; const l = LOT_BY[pk]; return l ? l.excelPrice : null; }
@@ -632,6 +729,7 @@ function passesBase(r, skip){
   if (S.show === 'changes' && !r.status) return false;
   if (S.show === 'sub' && r.status !== 'sub') return false;
   if (S.show === 'picks' && !PICKS.has(r.id)) return false;
+  if (S.show === 'media' && !(r.photos.length || r.videos.length || r.links.length)) return false;
   if (S.show === 'unsold' && (r.status === 'out' || priceOf(r.pk) !== null)) return false;
   if (S.show === 'sold' && priceOf(r.pk) === null) return false;
   if (skip !== 'tier' && S.tier && !(r.best && r.best <= S.tier)) return false;
@@ -671,7 +769,7 @@ function buildControls(){
 }
 function renderControls(){
   const changes = ROWS.filter(r => r.status).length, subs = ROWS.filter(r => r.status==='sub').length;
-  const showOpts = [['all','Available'],['sub','Substitutions',subs],['changes','All sale-day changes',changes],['picks','My picks',PICKS.size],['unsold','Not sold yet'],['sold','Sold'],['everything','Everything']];
+  const showOpts = [['all','Available'],['sub','Substitutions',subs],['changes','All sale-day changes',changes],['picks','My picks',PICKS.size],['media','With photos / video', ROWS.filter(r => r.photos.length || r.videos.length || r.links.length).length],['unsold','Not sold yet'],['sold','Sold'],['everything','Everything']];
   $('#statusChips').innerHTML = showOpts.map(([v,l,n]) => `<button class="chip${v==='sub'?' sub':''}" aria-pressed="${S.show===v}" data-v="${v}">${l}${n!==undefined?` <span class="n">${n}</span>`:''}</button>`).join('');
   $('#statusChips').querySelectorAll('.chip').forEach(b => b.onclick = () => { S.show = b.dataset.v; render(); });
   const hasPct = pctBreeds().length > 0;
@@ -793,6 +891,7 @@ function card(r){
       <button class="star" aria-pressed="${PICKS.has(r.id)}" data-id="${esc(r.id)}" title="${PICKS.has(r.id)?'Remove from':'Add to'} my picks" aria-label="Pick lot ${esc(r.lot)}">${starSvg}</button>
     </div>
     ${statusBlock(r)}
+    ${mediaBlock(r)}
     <div class="facts">${facts.join('')}</div>
     ${pen}
     ${ts.length ? `<div class="traits">${ts.map(t => { const tier = r.tiers && r.tiers[t.key];
@@ -803,13 +902,13 @@ function card(r){
 }
 function table(list){
   const ts = PRESENT.filter(t => list.some(r => r.traits[t.key] !== undefined));
-  const cols = [['', null],['Lot','sale'],['Breed','breed'],['Consignor','cons'],['Tag',null],['NSIP ID',null],['Birth',null],['Codon',null],['$/hd',null],['Lot total',null],['Buyer',null]];
+  const cols = [['', null],['Lot','sale'],['Breed','breed'],['Consignor','cons'],['Tag',null],['NSIP ID',null],['Media',null],['Birth',null],['Codon',null],['$/hd',null],['Lot total',null],['Buyer',null]];
   const th = cols.map(([l,k],i) => `<th ${i<2?`class="c${i}"`:''} ${k?`data-sort="${k}"`:''} ${k && S.sort===k?'aria-sort="ascending"':''}>${l}</th>`).join('') +
     ts.map(t => `<th data-sort="${t.key}" title="${esc(t.long)}" ${S.sort===t.key?`aria-sort="${S.dir<0?'descending':'ascending'}"`:''}>${esc(t.label)}</th>`).join('') + '<th>Comments</th>';
   const rows = list.map(r => `<tr class="${r.status?'is-'+r.status:''}" id="lot-${esc(r.id)}">
     <td class="c0"><button class="star" aria-pressed="${PICKS.has(r.id)}" data-id="${esc(r.id)}" aria-label="Pick lot ${esc(r.lot)}">${starSvg}</button></td>
     <td class="lot c1">${esc(r.lot)}${r.status==='sub'?'<span class="pill">SUB</span>':r.status==='out'?'<span class="pill out">OUT</span>':r.status==='sold'?'<span class="pill sold">SOLD</span>':''}</td>
-    <td>${esc(r.breed)}</td><td>${esc(r.consignor)}</td><td>${esc(r.tag)}</td><td>${r.nsip ? nsipLink(r.nsip) : ''}</td><td>${esc(BIRTH[r.birth]||r.birth||'')}</td><td>${esc(r.codon)}</td>
+    <td>${esc(r.breed)}</td><td>${esc(r.consignor)}</td><td>${esc(r.tag)}</td><td>${r.nsip ? nsipLink(r.nsip) : ''}</td><td>${mediaCell(r)}</td><td>${esc(BIRTH[r.birth]||r.birth||'')}</td><td>${esc(r.codon)}</td>
     ${(() => { const pb = priceBox(r, true); return pb ? `<td>${pb.inputs}</td><td class="num"><span class="lt" data-lt="${esc(r.pk)}">${pb.tot}</span>${r.penHead>1?` <small style="color:var(--muted)">(${r.penHead} hd)</small>`:''}</td><td>${pb.buyer}</td>` : '<td></td><td></td><td></td>'; })()}
     ${ts.map(t => { const tier = r.tiers && r.tiers[t.key]; return `<td class="num${t.key===S.sort?' hl':''}${tier?' t'+tier:''}"${tier?` title="Top ${tier}% of ${esc(r.pctBreed)}"`:''}>${fmt(r.traits[t.key], t.dp)}</td>`; }).join('')}
     <td class="cmt">${esc([r.status==='sub' ? ('SUB'+(r.replaces?' for '+r.replaces:'')+(r.note?': '+r.note:'')) : '', r.comments].filter(Boolean).join(' — '))}</td></tr>`).join('');
@@ -951,6 +1050,145 @@ $('#glossBtn').onclick = () => {
   $('#gloss').showModal();
 };
 $('#glossClose').onclick = () => $('#gloss').close();
+$('#results').addEventListener('click', e => { const b = e.target.closest('[data-media]'); if (b){ e.preventDefault(); openMedia(b.dataset.media, b.dataset.i); } });
+$('#mPrev').onclick = () => { MV.i = (MV.i - 1 + MV.items.length) % MV.items.length; showMedia(); };
+$('#mNext').onclick = () => { MV.i = (MV.i + 1) % MV.items.length; showMedia(); };
+$('#mediaClose').onclick = () => $('#mediaDlg').close();
+$('#mediaDlg').addEventListener('close', () => $('#mediaBody').innerHTML = '');   // stops video playback
+$('#mediaDlg').addEventListener('keydown', e => { if (e.key === 'ArrowRight') $('#mNext').click(); if (e.key === 'ArrowLeft') $('#mPrev').click(); });
+
+/* ============ print catalog (sale-book layout) ============ */
+const PRINT_CSS = `
+@page{size:letter;margin:.35in}
+.pc-page{width:7.8in;height:10.28in;display:flex;flex-direction:column;break-after:page;page-break-after:always;font-family:"Zilla Slab",Georgia,"Times New Roman",serif;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact;overflow:hidden}
+.pc-page:last-child{break-after:auto;page-break-after:auto}
+.pc-head{margin-bottom:.14in}
+.pc-title{font-size:30pt;line-height:1;border-bottom:2.5px solid #000;padding-bottom:3px}
+.pc-sec{font-size:20pt;line-height:1.1;margin-top:4px}
+.pc-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-auto-flow:column;column-gap:.32in;row-gap:.12in;align-content:start}
+.pc-num{font:600 10pt Georgia,serif;margin-top:auto;padding-top:4px}
+.pb{border:1.5px solid #000;height:1.85in;display:flex;flex-direction:column;font-family:Georgia,"Times New Roman",serif;overflow:hidden;position:relative;background:#fff}
+.pb-h{display:grid;grid-template-columns:.78in 1fr;border-bottom:1.5px solid #000}
+.pb-lot{font:700 25pt/1 "Zilla Slab",Georgia,serif;display:flex;align-items:center;justify-content:center;padding:2px}
+.pb-id{padding:3px 4px 2px 2px;min-width:0}
+.pb-l1{display:flex;justify-content:space-between;gap:6px;font-weight:700;font-size:9pt;border-bottom:2px solid #000;padding-bottom:1px;white-space:nowrap}
+.pb-l1 span{overflow:hidden;text-overflow:ellipsis}
+.pb-l2{display:flex;gap:8px;font-size:7pt;font-weight:700;padding-top:2px;white-space:nowrap;overflow:hidden}
+.pb-l2 .tg{margin-left:auto}
+.pb-r{display:grid;border-bottom:1px solid #000}
+.pb-r div{border-right:1px solid #000;text-align:center;min-width:0}
+.pb-r div:last-child{border-right:0}
+.pb-k{background:#cfcfcf;font:700 5.8pt/1.05 Georgia,serif;text-transform:uppercase;padding:2px 1px;display:flex;align-items:center;justify-content:center}
+.pb-v{font-size:9.5pt;padding:2px 1px;height:.21in;display:flex;align-items:center;justify-content:center}
+.pb-f{flex:1;display:grid;grid-template-columns:1fr .8in;grid-template-rows:auto 1fr;min-height:0}
+.pb-f .pb-k{border-right:1px solid #000}
+.pb-f .pb-k:nth-child(2){border-right:0}
+.pb-c{font-size:8pt;line-height:1.15;padding:2px 5px;border-right:1px solid #000;text-align:center;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pb-p{font-size:9pt;display:flex;align-items:center;justify-content:center;font-weight:700}
+.pb-sub{position:absolute;top:2px;left:2px;background:#F2C230;font:700 6pt Georgia,serif;letter-spacing:.06em;padding:1px 3px}
+.pb.out{opacity:.45}
+.pb.out::after{content:"OUT OF SALE";position:absolute;inset:auto 0 42% 0;text-align:center;font:700 16pt Georgia,serif;letter-spacing:.1em;color:#000;transform:rotate(-8deg)}
+.t5{background:#FF87F6}.t10{background:#61CBF3}.t20{background:#83E28E}
+`;
+(function(){ const st = document.createElement('style'); st.textContent = '@media print{' + PRINT_CSS + '}'; document.head.appendChild(st); })();
+
+const PT_BF1 = [['Birth type','birth'],['BWT','bwt'],['WWT','wwt'],['PWWT','bpwwt'],['PFAT','pfat'],['PEMD','pemd'],['Carcass+','cplus']];
+const PT_BF2 = [['Scrapie genotype','codon'],['ADG','adg'],['ADG ratio','adgR'],['Ribeye in²','rib'],['Ribeye ratio','ribR'],['TOB ratio','tobR'],['WW ratio','wwR'],['Gain ratio','gainR']];
+const PT_WF1 = [['Birth type','birth'],['Scrapie genotype','codon'],['FD mic','fd'],['Ribeye in²','rib'],['Ribeye ratio','ribR'],['NLB%','nlb'],['Milk wt','milk']];
+const PT_WF2 = [['Carcass YEMD','yemd'],['PWWT','pwwt'],['YWT','ywt'],['YFW','yfw'],['YFD','yfd'],['YSL','ysl'],['Range index','index']];
+const PT_WR2 = [['Growth ratio','growR'],['Wool ratio','woolR'],['ADG','adg'],['Ribeye ratio','ribR']];
+const PDP = {adg:2, rib:2, ribR:0, adgR:0, tobR:0, wwR:0, gainR:0, growR:0, woolR:0, cplus:0, index:0, fd:1};
+function pval(r, k, color){
+  if (k === 'birth') return {v: r.birth ?? ''};
+  if (k === 'codon') return {v: r.codon || ''};
+  const v = r.traits[k]; if (v === undefined) return {v:''};
+  return {v: fmt(v, PDP[k] ?? 1), t: color && r.tiers ? r.tiers[k] : null};
+}
+function prow(r, tpl, color){
+  const cols = `grid-template-columns:repeat(${tpl.length},1fr)`;
+  return `<div class="pb-r" style="${cols}">${tpl.map(([l]) => `<div class="pb-k">${esc(l)}</div>`).join('')}</div>` +
+         `<div class="pb-r" style="${cols}">${tpl.map(([,k]) => { const x = pval(r,k,color); return `<div class="pb-v${x.t?' t'+x.t:''}">${esc(x.v)}</div>`; }).join('')}</div>`;
+}
+function pbox(r, tpls, o){
+  const hd = /of/i.test(r.head) ? r.head.replace(/\s+/g,' ').trim() : `1 of ${r.penHead || 1}`;
+  const price = o.price && r.status !== 'out' && priceOf(r.pk) !== null ? money(priceOf(r.pk)) + '/hd' : '';
+  const cmt = [r.status === 'sub' ? 'SUBSTITUTE' + (r.replaces ? ' for ' + r.replaces : '') + (r.note ? ': ' + r.note : '') : '', r.comments].filter(Boolean).join(' — ');
+  return `<div class="pb${r.status==='out'?' out':''}">${r.status==='sub'?'<span class="pb-sub">SUB</span>':''}
+    <div class="pb-h"><div class="pb-lot">${esc(r.lot)}</div><div class="pb-id">
+      <div class="pb-l1"><span>${esc(r.breed)}</span><span>${esc(r.consignor)}</span></div>
+      <div class="pb-l2"><span>HD: ${esc(hd)}</span><span>NSIP: ${esc(r.nsip)}</span><span class="tg">Tag: ${esc(r.tag)}</span></div></div></div>
+    ${prow(r, tpls[0], o.color)}${prow(r, tpls[1], o.color)}
+    <div class="pb-f"><div class="pb-k">Comments:</div><div class="pb-k">Price</div><div class="pb-c">${esc(cmt)}</div><div class="pb-p">${esc(price)}</div></div>
+  </div>`;
+}
+function sectionTemplates(rows){
+  if (rows.some(r => r.face === 'blackface')) return [PT_BF1, PT_BF2];
+  const hasEbv = rows.some(r => PT_WF2.some(([,k]) => r.traits[k] !== undefined));
+  return [PT_WF1, hasEbv ? PT_WF2 : PT_WR2];
+}
+function buildPrint(o){
+  let rows;
+  if (o.scope === 'filtered') rows = filtered(); else if (o.scope === 'picks') rows = ROWS.filter(r => PICKS.has(r.id)); else rows = ROWS.slice();
+  rows = rows.filter(r => o.sections.includes(r.section) && (o.out || r.status !== 'out'))
+             .sort((a,b) => a.lotNum - b.lotNum || a.lotSuf.localeCompare(b.lotSuf));
+  const secs = []; rows.forEach(r => { let s = secs.find(x => x.name === r.section); if (!s) secs.push(s = {name:r.section, rows:[]}); s.rows.push(r); });
+  let pages = [], n = o.page, first = true;
+  secs.forEach(sec => {
+    const tpls = sectionTemplates(sec.rows); let i = 0, secFirst = true;
+    while (i < sec.rows.length){
+      const perCol = secFirst ? 4 : 5, take = sec.rows.slice(i, i + perCol*2); i += take.length;
+      const head = secFirst ? `<div class="pc-head">${first && o.title ? `<div class="pc-title">${esc(o.title)}</div>` : ''}<div class="pc-sec">${esc(sec.name)}</div></div>` : '';
+      pages.push(`<section class="pc-page">${head}<div class="pc-grid" style="grid-template-rows:repeat(${perCol},1.85in)">${take.map(r => pbox(r, tpls, o)).join('')}</div><div class="pc-num">${n++}</div></section>`);
+      secFirst = false; first = false;
+    }
+  });
+  return {html: pages.join(''), pages: pages.length, lots: rows.length};
+}
+function printOpts(){
+  return { scope: document.querySelector('input[name="pscope"]:checked').value,
+    sections: [...document.querySelectorAll('#psSections input:checked')].map(i => i.value),
+    color: $('#po_color').checked, out: $('#po_out').checked, price: $('#po_price').checked,
+    title: $('#po_title').value.trim(), page: parseInt($('#po_page').value,10) || 1 };
+}
+function openPrint(){
+  const secs = [...new Set(ROWS.map(r => r.section))];
+  $('#psSections').innerHTML = secs.map((s,i) => `<label for="pss${i}"><input type="checkbox" id="pss${i}" value="${esc(s)}" checked> ${esc(s)}</label>`).join('');
+  $('#ps_filt_n').textContent = `(${filtered().length})`; $('#ps_picks_n').textContent = `(${PICKS.size})`;
+  $('#printMsg').textContent = '';
+  $('#printDlg').showModal();
+}
+$('#printBtn').onclick = openPrint; $('#printBtn2').onclick = openPrint;
+$('#printClose').onclick = () => $('#printDlg').close();
+$('#doPrint').onclick = () => {
+  const b = buildPrint(printOpts());
+  if (!b.lots){ $('#printMsg').textContent = 'No lots to print with these choices.'; return; }
+  $('#printRoot').innerHTML = b.html; document.body.classList.add('pc');
+  $('#printDlg').close();
+  const done = () => { document.body.classList.remove('pc'); $('#printRoot').innerHTML = ''; window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  setTimeout(() => { window.print(); setTimeout(done, 1500); }, 50);
+};
+$('#doExport').onclick = () => {
+  const o = printOpts(), b = buildPrint(o);
+  if (!b.lots){ $('#printMsg').textContent = 'No lots to print with these choices.'; return; }
+  const doc = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(o.title || 'Ram sale catalog')} – print</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@600;700&display=swap">
+<style>body{margin:0;background:#e9e9e6}${PRINT_CSS}
+@media screen{.pc-page{margin:.3in auto;padding:.35in;box-sizing:content-box;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.bar{position:sticky;top:0;background:#1B231F;color:#fff;font:14px system-ui,sans-serif;padding:10px 16px;display:flex;gap:12px;align-items:center;z-index:2}
+.bar button{font:inherit;padding:6px 12px;border-radius:6px;border:0;cursor:pointer}}
+@media print{.bar{display:none}}</style></head><body>
+<div class="bar"><span>${b.lots} lots · ${b.pages} pages · letter size.</span><button onclick="window.print()">Print / Save as PDF</button><span style="opacity:.75">Tip: in the print dialog turn on “Background graphics” and set margins to Default.</span></div>
+${b.html}</body></html>`;
+  const name = 'ram-sale-catalog-print.html', msg = $('#printMsg');
+  if (window.claude && window.claude.use){
+    window.claude.use('downloads').then(dl => { if (!dl){ msg.textContent = 'Downloads are blocked here – use Print / Save as PDF.'; return; }
+      return dl.save({filename:name, data:doc}).then(() => msg.textContent = 'Saved. Open the file in a browser to print.').catch(e => { if (e && e.code !== 'declined') msg.textContent = 'Download unavailable here – use Print / Save as PDF.'; }); });
+    return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([doc], {type:'text/html'})); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  msg.textContent = 'Downloaded. Open the file in a browser to print or save as PDF.';
+};
 
 /* ============ keep screen on (Screen Wake Lock API) ============ */
 (function(){
