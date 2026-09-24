@@ -107,6 +107,11 @@ aside .grp-note{font-size:12px;color:var(--muted);margin:-2px 0 8px}
 .who{flex:1;min-width:0}
 .who .breed{font-family:var(--display);font-size:19px;line-height:1.15}
 .who .cons{color:var(--muted);font-size:14px}
+.who .rk{display:inline-block;margin-top:4px;font:600 12px/1.2 var(--mono);background:var(--accent);color:var(--accent-ink);border-radius:4px;padding:2px 6px}
+.rkn{display:inline-block;min-width:2.2em;margin-right:6px;font:600 11px var(--mono);color:var(--accent)}
+.ranknote{font-size:13.5px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:0 0 12px}
+.ranknote b{color:var(--ink)}
+.ranknote .warn{display:block;margin-top:4px;color:#7A5A00}
 .star{flex:none;background:none;border:1px solid transparent;border-radius:8px;cursor:pointer;color:var(--muted);padding:4px;line-height:0}
 .star:hover{border-color:var(--line)}
 .star[aria-pressed="true"]{color:#D39B00}
@@ -273,7 +278,10 @@ tr.tot td{font-weight:700;border-top:2px solid var(--line)}
     <div class="ctl">
       <button class="btn filters-toggle" id="filtersToggle" aria-expanded="false">Filters <span id="fCount"></span></button>
       <select id="sortKey" aria-label="Sort by"></select>
-      <button class="btn" id="sortDir" aria-label="Sort direction" title="Sort direction">↓ High first</button>
+      <button class="btn" id="sortDir" aria-label="Sort direction" title="Sort direction">↓ Highest first</button>
+      <select id="topN" aria-label="How many rams to list" title="List only the best rams for this trait" hidden>
+        <option value="0">All rams</option><option value="5">Top 5</option><option value="10">Top 10</option><option value="20">Top 20</option><option value="25">Top 25</option><option value="50">Top 50</option>
+      </select>
       <div class="seg" role="group" aria-label="View">
         <button id="vCards" aria-pressed="true">Cards</button>
         <button id="vTable" aria-pressed="false">Table</button>
@@ -281,6 +289,7 @@ tr.tot td{font-weight:700;border-top:2px solid var(--line)}
       </div>
       <button class="btn" id="glossBtn">Trait guide</button>
       <button class="btn" id="printBtn">Print catalog</button>
+      <button class="btn" id="xlBtn">Excel</button>
       <button class="btn" id="wakeBtn" hidden aria-pressed="false" title="Stop this phone or tablet from dimming or locking while the catalog is open">Keep screen on</button>
       <button class="tally" id="tally" hidden title="Open sale results"></button>
     </div>
@@ -324,6 +333,7 @@ tr.tot td{font-weight:700;border-top:2px solid var(--line)}
     <div id="source">Catalog data is read from the sale order spreadsheet each time this page loads.</div>
     <div class="ctl">
       <button class="btn" id="printBtn2">Print catalog…</button>
+      <button class="btn" id="xlBtn2">Download Excel…</button>
       <label class="btn" for="previewFile" title="Sale office: check a new spreadsheet before uploading it. Only you see the preview.">Preview a spreadsheet…</label>
       <input type="file" id="previewFile" accept=".xlsx,.xls,.xlsm" hidden>
     </div>
@@ -336,7 +346,7 @@ tr.tot td{font-weight:700;border-top:2px solid var(--line)}
     <p class="res-note" style="margin-top:10px">Lays the lots out like the printed sale book: two columns, five lots per column on letter paper. Print it, save it as a PDF, or download a file to print later.</p>
     <fieldset><legend>Which lots</legend>
       <label for="ps_all"><input type="radio" name="pscope" id="ps_all" value="all" checked> Whole sale</label>
-      <label for="ps_filt"><input type="radio" name="pscope" id="ps_filt" value="filtered"> Only lots matching the current filters <span class="n" id="ps_filt_n"></span></label>
+      <label for="ps_filt"><input type="radio" name="pscope" id="ps_filt" value="filtered"> Only lots listed on screen now (current filters / top N) <span class="n" id="ps_filt_n"></span></label>
       <label for="ps_picks"><input type="radio" name="pscope" id="ps_picks" value="picks"> Only my picks <span class="n" id="ps_picks_n"></span></label>
     </fieldset>
     <fieldset><legend>Sections</legend><div id="psSections" class="pchecks"></div></fieldset>
@@ -355,6 +365,28 @@ tr.tot td{font-weight:700;border-top:2px solid var(--line)}
   </div>
 </dialog>
 <div id="printRoot" aria-hidden="true"></div>
+
+<dialog id="xlDlg">
+  <div class="dlg-h"><h3>Download Excel</h3><button class="btn" id="xlClose">Close</button></div>
+  <div class="dlg-b pform">
+    <p class="res-note" style="margin-top:10px">Saves an .xlsx spreadsheet with one row per ram: lot, breed, consignor, tags, NSIP ID (linked), birth type, genotype, every EBV and ratio, and comments. Top 5 / 10 / 20% values keep their colors.</p>
+    <fieldset><legend>Which rams</legend>
+      <label for="xs_view"><input type="radio" name="xscope" id="xs_view" value="view" checked> What's listed on screen now <span class="n" id="xs_view_n"></span></label>
+      <label for="xs_all"><input type="radio" name="xscope" id="xs_all" value="all"> Whole catalog, in sale order <span class="n" id="xs_all_n"></span></label>
+      <label for="xs_picks"><input type="radio" name="xscope" id="xs_picks" value="picks"> Only my picks <span class="n" id="xs_picks_n"></span></label>
+    </fieldset>
+    <p class="res-note" id="xs_view_desc" style="margin:6px 2px 0"></p>
+    <fieldset><legend>Options</legend>
+      <label for="xo_out"><input type="checkbox" id="xo_out"> Include lots that are out of sale (whole catalog / picks)</label>
+      <label for="xo_color"><input type="checkbox" id="xo_color" checked> Color the top 5 / 10 / 20% EBVs</label>
+      <label for="xo_price"><input type="checkbox" id="xo_price"> Include prices and buyers I've entered</label>
+    </fieldset>
+    <div class="res-actions" style="margin:16px 0 0">
+      <button class="btn primary" id="doXl">Download .xlsx</button>
+      <span class="res-note" id="xlMsg"></span>
+    </div>
+  </div>
+</dialog>
 
 <dialog id="mediaDlg" class="mdlg">
   <div class="dlg-h"><h3 id="mediaTitle">Lot</h3><div class="ctl"><button class="btn" id="mPrev" aria-label="Previous">‹</button><button class="btn" id="mNext" aria-label="Next">›</button><a class="btn" id="mOpen" target="_blank" rel="noopener">Open ↗</a><button class="btn" id="mediaClose">Close</button></div></div>
@@ -471,7 +503,7 @@ const BIRTH = {1:'Single',2:'Twin',3:'Triplet',4:'Quad'};
 /* ============ state ============ */
 let ROWS = [], PRESENT = [], OTHER_TRAITS = {}, LOTS = [], LOT_BY = {};
 let PCT_EXT = {}, PCT_CAT = {}, PCT = {}, PCT_SRC = '';
-const S = { q:'', breeds:new Set(), cons:new Set(), codons:new Set(), births:new Set(), show:'all', tier:null, ranges:{}, sort:'sale', dir:-1, view:'cards' };
+const S = { q:'', breeds:new Set(), cons:new Set(), codons:new Set(), births:new Set(), show:'all', tier:null, ranges:{}, sort:'sale', dir:-1, top:0, view:'cards' };
 let PICKS = new Set();
 try { PICKS = new Set(JSON.parse(localStorage.getItem('ramsale-picks') || '[]')); } catch(e){}
 try { const v = localStorage.getItem('ramsale-view'); if (['table','cards','results'].includes(v)) S.view = v; } catch(e){}
@@ -820,20 +852,22 @@ function renderControls(){
   if (!opts.some(o => o[0] === S.sort)) S.sort = 'sale';
   sel.innerHTML = opts.map(([v,l]) => `<option value="${v}" ${v===S.sort?'selected':''}>${esc(l)}</option>`).join('');
   const isTrait = !['sale','cons','breed'].includes(S.sort);
-  $('#sortDir').hidden = !isTrait;
-  $('#sortDir').textContent = S.dir < 0 ? '↓ High first' : '↑ Low first';
+  $('#sortDir').hidden = !isTrait; $('#topN').hidden = !isTrait;
+  $('#sortDir').textContent = S.dir < 0 ? '↓ Highest first' : '↑ Lowest first';
+  $('#topN').value = String(S.top);
 
   // active filter pills
   const act = [];
   if (S.q) act.push(['q','“'+S.q+'”']);
   if (S.tier) act.push(['tier', `Top ${S.tier}% of breed`]);
+  if (isTrait && S.top){ const t = allTraits().find(x=>x.key===S.sort); act.push(['top', `${S.top} ${S.dir<0?'highest':'lowest'} ${t?t.label:S.sort}`]); }
   S.breeds.forEach(v => act.push(['breed:'+v, v])); S.cons.forEach(v => act.push(['cons:'+v, v]));
   S.codons.forEach(v => act.push(['codon:'+v, v])); S.births.forEach(v => act.push(['birth:'+v, BIRTH[v]||v]));
   Object.entries(S.ranges).forEach(([k,[lo,hi]]) => { if (lo===null && hi===null) return; const t = allTraits().find(x=>x.key===k); act.push(['range:'+k, `${t?t.label:k} ${lo!==null?'≥ '+lo:''}${lo!==null&&hi!==null?', ':''}${hi!==null?'≤ '+hi:''}`]); });
   $('#activeFilters').innerHTML = act.map(([k,l]) => `<button data-k="${esc(k)}" title="Remove filter">${esc(l)}</button>`).join('');
   $('#activeFilters').querySelectorAll('button').forEach(b => b.onclick = () => {
     const [t, ...rest] = b.dataset.k.split(':'); const v = rest.join(':');
-    if (t==='q'){ S.q=''; $('#q').value=''; } else if (t==='tier') S.tier = null; else if (t==='breed') S.breeds.delete(v); else if (t==='cons') S.cons.delete(v);
+    if (t==='q'){ S.q=''; $('#q').value=''; } else if (t==='tier') S.tier = null; else if (t==='top') S.top = 0; else if (t==='breed') S.breeds.delete(v); else if (t==='cons') S.cons.delete(v);
     else if (t==='codon') S.codons.delete(v); else if (t==='birth') S.births.delete(v); else if (t==='range') delete S.ranges[v];
     render();
   });
@@ -864,7 +898,29 @@ function sorted(list){
   if (k === 'breed') return list.sort((a,b) => a.breed.localeCompare(b.breed) || sale(a,b));
   return list.sort((a,b) => { const x = a.traits[k], y = b.traits[k];
     if (x === undefined && y === undefined) return sale(a,b); if (x === undefined) return 1; if (y === undefined) return -1;
-    return (x - y) * -d || sale(a,b); });
+    return (x - y) * d || sale(a,b); });   // d = -1 highest first, +1 lowest first
+}
+
+/* the list as displayed: filtered, sorted, and cut to the top N when ranking by a trait */
+const isTraitSort = () => !['sale','cons','breed'].includes(S.sort);
+function shown(){
+  let list = sorted(filtered());
+  ROWS.forEach(r => r.rank = null);
+  if (isTraitSort()){
+    list.filter(r => r.traits[S.sort] !== undefined).forEach((r,i) => r.rank = i + 1);
+    if (S.top) list = list.filter(r => r.rank && r.rank <= S.top);
+  }
+  return list;
+}
+function rankNote(list){
+  if (!isTraitSort()) return '';
+  const t = allTraits().find(x => x.key === S.sort); if (!t) return '';
+  const breeds = [...new Set(list.filter(r => r.rank).map(r => r.breed || '—'))];
+  const miss = filtered().filter(r => r.traits[S.sort] === undefined).length;
+  let h = `Ranked by <b>${esc(t.long)}</b>, ${S.dir < 0 ? 'highest' : 'lowest'} first${S.top ? ` — showing the top ${Math.min(S.top, list.length)}` : ''}.`;
+  if (miss) h += ` ${miss} ram${miss>1?'s':''} without a ${esc(t.label)} value ${S.top ? 'left out' : 'listed last'}.`;
+  if (t.group && /EBV|Index/i.test(t.group + t.long) && breeds.length > 1) h += ` <span class="warn">EBVs are calculated within each breed, so compare ${breeds.length} breeds with care — pick one breed in Filters for a fair ranking.</span>`;
+  return `<div class="ranknote">${h}</div>`;
 }
 
 /* ============ rendering ============ */
@@ -887,7 +943,7 @@ function card(r){
   return `<article class="card${cls}" id="lot-${esc(r.id)}">
     <div class="top">
       <div class="lottag"><small>LOT</small><span>${esc(r.lot)}</span></div>
-      <div class="who"><div class="breed">${esc(r.breed)}</div><div class="cons">${esc(r.consignor)}</div></div>
+      <div class="who"><div class="breed">${esc(r.breed)}</div><div class="cons">${esc(r.consignor)}</div>${r.rank ? `<div class="rk">#${r.rank} for ${esc((allTraits().find(x=>x.key===S.sort)||{}).label||'')}</div>` : ''}</div>
       <button class="star" aria-pressed="${PICKS.has(r.id)}" data-id="${esc(r.id)}" title="${PICKS.has(r.id)?'Remove from':'Add to'} my picks" aria-label="Pick lot ${esc(r.lot)}">${starSvg}</button>
     </div>
     ${statusBlock(r)}
@@ -907,7 +963,7 @@ function table(list){
     ts.map(t => `<th data-sort="${t.key}" title="${esc(t.long)}" ${S.sort===t.key?`aria-sort="${S.dir<0?'descending':'ascending'}"`:''}>${esc(t.label)}</th>`).join('') + '<th>Comments</th>';
   const rows = list.map(r => `<tr class="${r.status?'is-'+r.status:''}" id="lot-${esc(r.id)}">
     <td class="c0"><button class="star" aria-pressed="${PICKS.has(r.id)}" data-id="${esc(r.id)}" aria-label="Pick lot ${esc(r.lot)}">${starSvg}</button></td>
-    <td class="lot c1">${esc(r.lot)}${r.status==='sub'?'<span class="pill">SUB</span>':r.status==='out'?'<span class="pill out">OUT</span>':r.status==='sold'?'<span class="pill sold">SOLD</span>':''}</td>
+    <td class="lot c1">${r.rank ? `<span class="rkn">#${r.rank}</span>` : ''}${esc(r.lot)}${r.status==='sub'?'<span class="pill">SUB</span>':r.status==='out'?'<span class="pill out">OUT</span>':r.status==='sold'?'<span class="pill sold">SOLD</span>':''}</td>
     <td>${esc(r.breed)}</td><td>${esc(r.consignor)}</td><td>${esc(r.tag)}</td><td>${r.nsip ? nsipLink(r.nsip) : ''}</td><td>${mediaCell(r)}</td><td>${esc(BIRTH[r.birth]||r.birth||'')}</td><td>${esc(r.codon)}</td>
     ${(() => { const pb = priceBox(r, true); return pb ? `<td>${pb.inputs}</td><td class="num"><span class="lt" data-lt="${esc(r.pk)}">${pb.tot}</span>${r.penHead>1?` <small style="color:var(--muted)">(${r.penHead} hd)</small>`:''}</td><td>${pb.buyer}</td>` : '<td></td><td></td><td></td>'; })()}
     ${ts.map(t => { const tier = r.tiers && r.tiers[t.key]; return `<td class="num${t.key===S.sort?' hl':''}${tier?' t'+tier:''}"${tier?` title="Top ${tier}% of ${esc(r.pctBreed)}"`:''}>${fmt(r.traits[t.key], t.dp)}</td>`; }).join('')}
@@ -984,28 +1040,29 @@ function render(){
   updateTally();
   $('.layout').classList.toggle('results-mode', S.view === 'results');
   if (S.view === 'results'){ $('#count').innerHTML = 'Sale results'; $('#results').innerHTML = results(); wireResults(); return; }
-  const list = sorted(filtered());
+  const list = shown();
   const hidden = ROWS.filter(r => r.status==='out').length;
   $('#count').innerHTML = `${list.length} ram${list.length===1?'':'s'}<small>${S.show==='all' && hidden ? `${hidden} out of sale hidden` : ''}</small>`;
   const res = $('#results');
   if (!list.length){ res.innerHTML = `<div class="empty">No rams match these filters. <button class="linkbtn" id="clr2">Clear all filters</button></div>`; $('#clr2').onclick = clearAll; return; }
-  if (S.view === 'table') res.innerHTML = table(list);
+  if (S.view === 'table') res.innerHTML = rankNote(list) + table(list);
   else if (S.sort === 'sale'){
     // group by section in sale order
     let html = '', cur = null, buf = [];
     const flush = () => { if (buf.length) html += `<h2 class="section-h">${esc(cur)} <small>${buf.length} ram${buf.length>1?'s':''}</small></h2><div class="cards">${buf.map(card).join('')}</div>`; buf = []; };
     list.forEach(r => { if (r.section !== cur){ flush(); cur = r.section; } buf.push(r); }); flush();
     res.innerHTML = html;
-  } else res.innerHTML = `<div class="cards">${list.map(card).join('')}</div>`;
+  } else res.innerHTML = rankNote(list) + `<div class="cards">${list.map(card).join('')}</div>`;
   res.querySelectorAll('.star').forEach(b => b.onclick = () => { const id = b.dataset.id; PICKS.has(id) ? PICKS.delete(id) : PICKS.add(id); savePicks(); render(); });
   res.querySelectorAll('th[data-sort]').forEach(th => th.onclick = () => { const k = th.dataset.sort; if (S.sort === k) S.dir *= -1; else { S.sort = k; const t = allTraits().find(x=>x.key===k); S.dir = t && t.dir === 'low' ? 1 : -1; } render(); });
 }
-function clearAll(){ S.q=''; $('#q').value=''; S.breeds.clear(); S.cons.clear(); S.codons.clear(); S.births.clear(); S.ranges={}; S.show='all'; S.tier=null; render(); }
+function clearAll(){ S.top = 0; S.q=''; $('#q').value=''; S.breeds.clear(); S.cons.clear(); S.codons.clear(); S.births.clear(); S.ranges={}; S.show='all'; S.tier=null; render(); }
 
 /* ============ events ============ */
 let qT; $('#q').addEventListener('input', e => { clearTimeout(qT); qT = setTimeout(() => { S.q = e.target.value.trim(); render(); }, 120); });
 $('#sortKey').onchange = e => { S.sort = e.target.value; const t = allTraits().find(x=>x.key===S.sort); S.dir = t && t.dir === 'low' ? 1 : -1; render(); };
 $('#sortDir').onclick = () => { S.dir *= -1; render(); };
+$('#topN').onchange = e => { S.top = parseInt(e.target.value, 10) || 0; render(); };
 const setView = v => { S.view = v; ['cards','table','results'].forEach(x => $('#v'+x[0].toUpperCase()+x.slice(1)).setAttribute('aria-pressed', v===x)); try{localStorage.setItem('ramsale-view', v);}catch(e){} render(); };
 $('#vCards').onclick = () => setView('cards'); $('#vTable').onclick = () => setView('table'); $('#vResults').onclick = () => setView('results');
 ['cards','table','results'].forEach(x => $('#v'+x[0].toUpperCase()+x.slice(1)).setAttribute('aria-pressed', S.view===x));
@@ -1128,7 +1185,7 @@ function sectionTemplates(rows){
 }
 function buildPrint(o){
   let rows;
-  if (o.scope === 'filtered') rows = filtered(); else if (o.scope === 'picks') rows = ROWS.filter(r => PICKS.has(r.id)); else rows = ROWS.slice();
+  if (o.scope === 'filtered') rows = shown(); else if (o.scope === 'picks') rows = ROWS.filter(r => PICKS.has(r.id)); else rows = ROWS.slice();
   rows = rows.filter(r => o.sections.includes(r.section) && (o.out || r.status !== 'out'))
              .sort((a,b) => a.lotNum - b.lotNum || a.lotSuf.localeCompare(b.lotSuf));
   const secs = []; rows.forEach(r => { let s = secs.find(x => x.name === r.section); if (!s) secs.push(s = {name:r.section, rows:[]}); s.rows.push(r); });
@@ -1153,7 +1210,7 @@ function printOpts(){
 function openPrint(){
   const secs = [...new Set(ROWS.map(r => r.section))];
   $('#psSections').innerHTML = secs.map((s,i) => `<label for="pss${i}"><input type="checkbox" id="pss${i}" value="${esc(s)}" checked> ${esc(s)}</label>`).join('');
-  $('#ps_filt_n').textContent = `(${filtered().length})`; $('#ps_picks_n').textContent = `(${PICKS.size})`;
+  $('#ps_filt_n').textContent = `(${shown().length})`; $('#ps_picks_n').textContent = `(${PICKS.size})`;
   $('#printMsg').textContent = '';
   $('#printDlg').showModal();
 }
@@ -1190,6 +1247,151 @@ ${b.html}</body></html>`;
   msg.textContent = 'Downloaded. Open the file in a browser to print or save as PDF.';
 };
 
+/* ============ Excel download ============ */
+// Uses the xlsx-js-style build of SheetJS (loaded only when needed) so the top 5/10/20% cells keep their colors.
+// If it can't load, the plain reader is used and the file is saved without colors.
+let XLS = null;
+function styledXLSX(){
+  if (XLS) return Promise.resolve(XLS);
+  return new Promise(res => {
+    const core = window.XLSX, sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
+    const done = ok => { const lib = window.XLSX; window.XLSX = core; XLS = ok && lib && lib !== core ? lib : core; res(XLS); };
+    sc.onload = () => done(true); sc.onerror = () => done(false);
+    setTimeout(() => done(false), 8000);
+    document.head.appendChild(sc);
+  });
+}
+function xlRows(o){
+  if (o.scope === 'view') return shown();
+  let rows = o.scope === 'picks' ? ROWS.filter(r => PICKS.has(r.id)) : ROWS.slice();
+  rows = rows.filter(r => o.out || r.status !== 'out').sort((a,b) => a.lotNum - b.lotNum || a.lotSuf.localeCompare(b.lotSuf));
+  return rows;
+}
+function describeView(){
+  const bits = [];
+  const t = allTraits().find(x => x.key === S.sort);
+  bits.push(isTraitSort() && t ? `${S.top ? 'Top ' + S.top + ' by ' : 'Sorted by '}${t.long}, ${S.dir < 0 ? 'highest' : 'lowest'} first` : ({sale:'Sale order', cons:'Consignor A–Z', breed:'Breed A–Z'})[S.sort]);
+  if (S.breeds.size) bits.push('Breed: ' + [...S.breeds].join(', '));
+  if (S.cons.size) bits.push('Consignor: ' + [...S.cons].join(', '));
+  if (S.codons.size) bits.push('Genotype: ' + [...S.codons].join(', '));
+  if (S.births.size) bits.push('Birth: ' + [...S.births].map(b => BIRTH[b] || b).join(', '));
+  if (S.tier) bits.push(`Top ${S.tier}% of breed for any EBV`);
+  if (S.q) bits.push(`Search “${S.q}”`);
+  Object.entries(S.ranges).forEach(([k,[lo,hi]]) => { if (lo===null && hi===null) return; const tr = allTraits().find(x=>x.key===k); bits.push(`${tr?tr.label:k} ${lo!==null?'≥ '+lo:''}${lo!==null&&hi!==null?' and ':''}${hi!==null?'≤ '+hi:''}`); });
+  const show = {all:'', sub:'Substitutions only', changes:'Sale-day changes only', picks:'My picks only', media:'With photos/video', unsold:'Not sold yet', sold:'Sold', everything:'Including out of sale'}[S.show];
+  if (show) bits.push(show);
+  return bits.join(' · ');
+}
+async function buildXlsx(o){
+  const X = await styledXLSX(), styled = X !== window.XLSX;
+  const rows = xlRows(o);
+  const ts = [...PRESENT, ...Object.values(OTHER_TRAITS).filter(t => !PRESENT.includes(t))].filter(t => rows.some(r => r.traits[t.key] !== undefined));
+  const ranked = o.scope === 'view' && rows.some(r => r.rank);
+  const nsipUrl = id => { const k = str(id).replace(/[^A-Za-z0-9]/g,'').slice(-16); return k.length === 16 ? 'http://nsipsearch.nsip.org/#!/details/' + k : null; };
+  const cols = [];
+  if (ranked) cols.push(['Rank', r => r.rank || null, 6]);
+  cols.push(['Lot', r => r.lot, 7], ['Section', r => r.section, 16], ['Breed', r => r.breed, 16], ['Consignor', r => r.consignor, 26],
+    ['Tag', r => r.tag, 12], ['Scrapie tag', r => r.scrapieTag, 12], ['NSIP ID', r => r.nsip, 22], ['Birth type', r => BIRTH[r.birth] || r.birth || '', 9], ['Scrapie genotype', r => r.codon, 9],
+    ['Status', r => ({sub:'SUB', out:'OUT', sold:'SOLD'})[r.status] || '', 7], ['Replaces tag', r => r.replaces, 10], ['Status note', r => r.note, 22]);
+  const firstTrait = cols.length;
+  const dupe = l => ts.filter(x => x.label === l).length > 1;
+  ts.forEach(t => { const h = dupe(t.label) && t.group ? `${t.label} (${t.group.split(' ')[0].toLowerCase()})` : t.label;
+    cols.push([h, r => r.traits[t.key] ?? null, Math.max(7, h.length + 2), t]); });
+  cols.push(['Top-tier EBVs (within breed)', r => ts.filter(t => r.tiers && r.tiers[t.key]).map(t => `${t.label} top ${r.tiers[t.key]}%`).join('; '), 30]);
+  cols.push(['Comments', r => r.comments, 50]);
+  if (o.price) cols.push(['Price / hd', r => r.status === 'out' ? null : priceOf(r.pk), 10], ['Head in lot', r => r.status === 'out' ? null : r.penHead || 1, 8],
+    ['Lot total', r => { const p = priceOf(r.pk); return p === null || r.status === 'out' ? null : p * (r.penHead || 1); }, 11], ['Buyer', r => r.status === 'out' ? '' : buyerOf(r.pk), 20]);
+  cols.push(['My pick', r => PICKS.has(r.id) ? 'Yes' : '', 7]);
+
+  const aoa = [cols.map(c => c[0])].concat(rows.map(r => cols.map(c => { const v = c[1](r); return v === undefined ? null : v; })));
+  const ws = X.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = cols.map(c => ({wch: c[2]}));
+  const last = X.utils.encode_cell({r: rows.length, c: cols.length - 1});
+  ws['!autofilter'] = {ref: 'A1:' + last};
+  const nsipCol = cols.findIndex(c => c[0] === 'NSIP ID');
+  const FILL = {5:'FF87F6', 10:'61CBF3', 20:'83E28E'};
+  const border = {bottom:{style:'thin', color:{rgb:'D3D9D1'}}};
+  cols.forEach((c, ci) => { const a = X.utils.encode_cell({r:0, c:ci}); if (ws[a] && styled) ws[a].s = {font:{bold:true, color:{rgb:'FFFFFF'}}, fill:{patternType:'solid', fgColor:{rgb:'2C4C68'}}, alignment:{vertical:'center', wrapText:true}}; });
+  rows.forEach((r, ri) => {
+    const url = nsipUrl(r.nsip), a = X.utils.encode_cell({r: ri+1, c: nsipCol});
+    if (url && ws[a]) ws[a].l = {Target: url, Tooltip: 'Open on NSIP Search'};
+    if (!styled) return;
+    if (url && ws[a]) ws[a].s = {font:{color:{rgb:'2C4C68'}, underline:true}};
+    cols.forEach((c, ci) => { const t = c[3]; if (!t) return; const cell = ws[X.utils.encode_cell({r: ri+1, c: ci})]; if (!cell) return;
+      cell.z = t.dp !== undefined ? (t.dp ? '0.' + '0'.repeat(t.dp) : '0') : '0.00';
+      const tier = o.color && r.tiers && r.tiers[t.key];
+      if (tier) cell.s = {fill:{patternType:'solid', fgColor:{rgb: FILL[tier]}}, font:{color:{rgb:'1A1A1A'}}};
+    });
+    if (r.status === 'out') cols.forEach((c, ci) => { const cell = ws[X.utils.encode_cell({r: ri+1, c: ci})]; if (cell) cell.s = Object.assign({}, cell.s, {font:{color:{rgb:'8B918C'}, strike:true}}); });
+    const cm = ws[X.utils.encode_cell({r: ri+1, c: cols.length - (o.price ? 6 : 2)})]; if (cm) cm.s = {alignment:{wrapText:false}};
+  });
+  if (o.price) cols.forEach((c, ci) => { if (!/Price|Lot total/.test(c[0])) return; for (let ri = 1; ri <= rows.length; ri++){ const cell = ws[X.utils.encode_cell({r: ri, c: ci})]; if (cell) cell.z = '"$"#,##0'; } });
+
+  // second sheet: what's in the file
+  const scopeTxt = {view: 'What was listed on screen — ' + describeView(), all: 'Whole catalog, sale order', picks: 'My picks, sale order'}[o.scope];
+  const about = [['Ram sale catalog export'], [], ['Exported', new Date().toLocaleString()], ['Rams', rows.length], ['Which rams', scopeTxt],
+    ['Catalog data', ($('#source').textContent || '').trim()], [],
+    ['Colors', 'Pink = top 5%, blue = top 10%, green = top 20% of the ram\'s own breed (NSIP percentile tables). EBVs are calculated within breed, so compare across breeds with care.'], [],
+    ['Column', 'Meaning']].concat(ts.map(t => [dupe(t.label) && t.group ? `${t.label} (${t.group.split(' ')[0].toLowerCase()})` : t.label, t.long + (t.desc ? ' — ' + t.desc : '')]));
+  const wa = X.utils.aoa_to_sheet(about); wa['!cols'] = [{wch:16}, {wch:110}];
+  if (styled){ wa.A1.s = {font:{bold:true, sz:14}}; ['A3','A4','A5','A6','A8','A10','B10'].forEach(a => { if (wa[a]) wa[a].s = {font:{bold:true}}; });
+    for (let i = 10; i < about.length; i++){ const b = wa['B' + (i+1)]; if (b) b.s = {alignment:{wrapText:true, vertical:'top'}}; const aa = wa['A' + (i+1)]; if (aa) aa.s = {alignment:{vertical:'top'}}; } }
+
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, ws, 'Catalog');
+  X.utils.book_append_sheet(wb, wa, 'About this file');
+  let buf = X.write(wb, {type:'array', bookType:'xlsx'});
+  // freeze the header row and the lot column (SheetJS can't write panes, so add it to the sheet XML)
+  try {
+    const cfb = X.CFB.read(new Uint8Array(buf), {type:'array'});
+    const i = cfb.FullPaths.findIndex(p => /xl\/worksheets\/sheet1\.xml$/.test(p)), f = cfb.FileIndex[i];
+    const xs = ranked ? 2 : 1, tl = X.utils.encode_cell({r:1, c:xs});
+    const xml = new TextDecoder().decode(f.content).replace(/<sheetView workbookViewId="0"\/>/, `<sheetView workbookViewId="0"><pane xSplit="${xs}" ySplit="1" topLeftCell="${tl}" activePane="bottomRight" state="frozen"/><selection pane="bottomRight"/></sheetView>`);
+    f.content = new TextEncoder().encode(xml); f.size = f.content.length;
+    buf = X.CFB.write(cfb, {fileType:'zip', type:'array'});
+  } catch(e){}
+  return {buf, n: rows.length, styled};
+}
+function xlName(o){
+  const d = new Date().toISOString().slice(0,10);
+  if (o.scope === 'picks') return `ram-sale-my-picks-${d}.xlsx`;
+  if (o.scope === 'view' && isTraitSort()){ const t = allTraits().find(x => x.key === S.sort); return `ram-sale-${S.top ? 'top' + S.top + '-' : ''}${(t ? t.label : S.sort).toLowerCase().replace(/[^a-z0-9]+/g,'-')}-${S.dir < 0 ? 'high' : 'low'}-${d}.xlsx`; }
+  return o.scope === 'view' ? `ram-sale-selection-${d}.xlsx` : `ram-sale-catalog-${d}.xlsx`;
+}
+function openXl(){
+  $('#xs_view_n').textContent = `(${shown().length})`; $('#xs_all_n').textContent = `(${ROWS.filter(r => r.status !== 'out').length})`; $('#xs_picks_n').textContent = `(${PICKS.size})`;
+  $('#xs_view_desc').textContent = 'On screen now: ' + describeView() + '.';
+  $('#xs_picks').disabled = !PICKS.size;
+  $('#xlMsg').textContent = '';
+  if (S.view === 'results') $('#xs_all').checked = true;
+  $('#xlDlg').showModal();
+  styledXLSX();   // start loading early
+}
+$('#xlBtn').onclick = openXl; $('#xlBtn2').onclick = openXl;
+$('#xlClose').onclick = () => $('#xlDlg').close();
+$('#doXl').onclick = async () => {
+  const o = { scope: document.querySelector('input[name="xscope"]:checked').value, out: $('#xo_out').checked, color: $('#xo_color').checked, price: $('#xo_price').checked };
+  const msg = $('#xlMsg'), btn = $('#doXl');
+  btn.disabled = true; msg.textContent = 'Building…';
+  try {
+    const x = await buildXlsx(o);
+    if (!x.n){ msg.textContent = 'No rams to export with these choices.'; return; }
+    const name = xlName(o), note = x.styled ? '' : ' (colors unavailable offline)';
+    if (window.claude && window.claude.use){
+      const dl = await window.claude.use('downloads');
+      if (!dl){ msg.textContent = 'Downloads are blocked here.'; return; }
+      try { await dl.save({filename: name, data: x.buf}); msg.textContent = `Saved ${x.n} rams${note}.`; }
+      catch(e){ msg.textContent = e && e.code === 'declined' ? '' : 'Download unavailable here.'; }
+      return;
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([x.buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    msg.textContent = `Downloaded ${x.n} rams${note}.`;
+  } catch(e){ msg.textContent = 'Could not build the file: ' + (e && e.message || e); }
+  finally { btn.disabled = false; }
+};
+
 /* ============ keep screen on (Screen Wake Lock API) ============ */
 (function(){
   const btn = $('#wakeBtn');
@@ -1223,3 +1425,4 @@ ${b.html}</body></html>`;
 
 loadDefault();
 </script>
+
